@@ -1,0 +1,80 @@
+
+New version available: v0.6.2 (current: v0.4.29)
+Upgrade and restart? [Y/n]: ╭──────────────────────────── NVIDIA P2P Override ─────────────────────────────╮
+│ Effective: yes                                                               │
+│ Configured file: yes (/etc/modprobe.d/nvidia-p2p-override.conf)              │
+│ Runtime: ForceP2P=0x11; RMForceP2PType=1; RMPcieP2PType=2;                   │
+│ GrdmaPciTopoCheckOverride=1; EnableResizableBar=1; DmaRemapPeerMmio=1        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────── Configuration ────────────────────────────────╮
+│ Completion Token Statistics Benchmark                                        │
+│ Model: glm53-flash-trellismx-p8-k45 @ 127.0.0.1:8000                         │
+│ Prompt: profile:estonia                                                      │
+│ Concurrency: 10                                                              │
+│ Measured runs: 10 | Max tokens: 40000                                        │
+│ Scoring: \bestonia\b                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭────────────────────────────── Completion Stats ──────────────────────────────╮
+│ Completion Token Statistics                                                  │
+│ One optional prefix-cache scout request is used to populate prefill first.   │
+│ Built-in profile run at fixed concurrency C=10.                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Profile                                                       
+╭────────────────┬───────────────────────────────────────────╮
+│ field          │ value                                     │
+├────────────────┼───────────────────────────────────────────┤
+│ profile        │ estonia                                   │
+│ prompt         │ profile:estonia                           │
+│ prompt chars   │ 707,372                                   │
+│ requested runs │ 10                                        │
+│ concurrency    │ 10                                        │
+│ max tokens     │ 40000                                     │
+│ scoring        │ regex                                     │
+│ prefill scout  │ 133,186 prompt tok / 16.30s = 8,169 tok/s │
+│ correct regex  │ \bestonia\b                               │
+╰────────────────┴───────────────────────────────────────────╯
+╭──────────────────────── Whole-run GPU Power ─────────────────────────╮
+│ avg 1,116 W | max 1,186 W | limit 1,200 W | over 1m 00s | 26 samples │
+╰──────────────────────────────────────────────────────────────────────╯
+Concurrency Results                                                             
+╭────┬────────┬───────────┬──────┬─────────┬──────────┬──────────┬─────────┬───╮
+│ p… │ done/… │     score │ sta… │ output… │ output … │ aggrega… │ avg re… │ … │
+├────┼────────┼───────────┼──────┼─────────┼──────────┼──────────┼─────────┼───┤
+│ 10 │  10/10 │ PASS 9 /… │ ★★★… │   1,066 │    3,216 │     83.0 │    25.4 │ … │
+╰────┴────────┴───────────┴──────┴─────────┴──────────┴──────────┴─────────┴───╯
+Selected C=10                                   
+╭────────────────────────────┬─────────────────╮
+│ metric                     │           value │
+├────────────────────────────┼─────────────────┤
+│ completed                  │           10/10 │
+│ score                      │ PASS 9 / FAIL 1 │
+│ stars                      │   ★★★★★★★★★✕ 👍 │
+│ hit max_tokens             │               0 │
+│ completion tokens avg      │           1,526 │
+│ completion tokens p50      │           1,066 │
+│ completion tokens p90      │           3,216 │
+│ completion tokens p99      │           3,998 │
+│ elapsed avg                │           25.4s │
+│ TTFT avg                   │           7.03s │
+│ aggregate gen tok/s        │            83.0 │
+│ mean per-request gen tok/s │            75.4 │
+╰────────────────────────────┴─────────────────╯
+Failed Final Answers                                                            
+╭───┬────┬────────┬───────┬────────────────────────────────────────────────────╮
+│ # │  C │ tokens │ score │ final answer                                       │
+├───┼────┼────────┼───────┼────────────────────────────────────────────────────┤
+│ 1 │ 10 │    886 │ FAIL  │ The packet deliberately includes a dense web of    │
+│   │    │        │       │ company names, countries, and stock codes, but the │
+│   │    │        │       │ specific connection asked about in this q          │
+╰───┴────┴────────┴───────┴────────────────────────────────────────────────────╯
+Interpretation: completion-token p50/p90/p99 tells how many decode tokens the 
+model needed to reach its final answer under this engine/config. Correctness is 
+scored from the final non-empty answer line by default, matching the GLM 
+dense-MLA vs NSA benchmark methodology. The prefill scout is not a scored 
+answer; it is the max_tokens=1 prefix-cache warmup and its prompt_tokens/TTFT 
+value is reported as scout prefill speed. Concurrency Results groups completed 
+requests by parallelism; Completed Requests shows the latest individual finished
+answers.
+
+Results saved to profile-estonia.json

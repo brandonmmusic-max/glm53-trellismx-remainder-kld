@@ -9,8 +9,8 @@ This repository is the full record of one preregistered study:
 - the preregistration, its seven amendments and a chronology of when each was committed
   (`PREREG.md`);
 - the results log, written as results came in (`RESULTS.md`);
-- every script that produced a number (`scripts/`; the release speed harnesses sit next to their
-  results in `results/speed-20260926/`);
+- every script that produced a number (`scripts/`; the release speed and behaviour harnesses sit
+  next to their results in `results/speed-20260926/` and `results/behaviour-20260926/`);
 - the raw and analysed result files (`results/`);
 - the kernel patches (`patches/`);
 - the deployment files and image record of the RP2 release image (`deploy/`).
@@ -73,6 +73,9 @@ The findings, in the order the tests ran:
    - In same-window single-run A/Bs against the r27 reference configuration (NVFP4 KV), the
      release configuration was -2.0% to +12.0% in decode and +5.7% to +7.5% in prefill. These
      runs cannot separate the kernels from the KV cache or from MTP acceptance (section 7).
+   - A behaviour check of the release image on the production server scored 9/10 (Hotel
+     Lights), 10/10 (LAVD) and 9/10 (Estonia), with no truncations or request errors (section
+     7.3). There is no reference-kernel result at these settings yet.
    - Raising GPU 3's power limit from 300 W to 350 W afterwards made prefill on the production
      server 6-8% faster (section 7.4).
 
@@ -82,6 +85,8 @@ The findings, in the order the tests ran:
 - **Kernel paths.** RP and RP2 change only the direct decode kernels. Dispatch is by tokens per
   step: steps with M <= 16 tokens use them.
   - The KL measurement pushes every token through those kernels.
+  - With MTP3 each decoding sequence adds 4 tokens per step, so decode steps of 1-4 concurrent
+    sequences stay on the direct path, and 5 or more sequences use the unchanged kernels.
   - In serving, steps with more than 16 tokens, which covers most prompt prefills, use unchanged
     kernels, so the served effect is expected to be smaller. That was not measured.
 - **Run-to-run stability.** Server-level shifts between repeat runs on different days reached
@@ -1107,6 +1112,14 @@ fixes were made on the card, and this update makes the rest (not re-reviewed):
   window's zero clock offsets are known, and marks the underfilled DCP4 cell in the table.
 - The image record's `kernel_source` names all three patches in order.
 
+**Fifth round (re-check, on commit 51ff7c5).** Four of the reviews re-checked their fourth-round
+items. The remaining model-card items were fixed on the card. This update makes the rest (not
+re-reviewed):
+- The behaviour-check results are now backed by their files (section 7.3).
+- Section 7.4 reports the measured clocks only. It no longer says which card limits throughput,
+  which was not measured.
+- Section 8.4 defines a clock-log poll precisely, so the clock medians reproduce.
+
 ## 7. RP2 release image (2026-09-26)
 
 After the study and the audit, the RP2 kernels were released as a public image. Nothing in this
@@ -1271,10 +1284,27 @@ batched tokens, GMU 0.88. Measured 2026-09-26, 05:28-06:42, reference arm first
 - The 1,000,000-token request limit is unchanged. `KV_CACHE_DTYPE=nvfp4_ds_mla` gives more
   capacity, but RP2 was never KL-measured with NVFP4 KV.
 
-**Behaviour check.** The DCP4 harness also tried three behaviour profiles. Those calls exited at
-once with status 2 and no output, because v0.4.29 has no `--reasoning-effort` option
-(`window.log`). A behaviour check (LAVD, Estonia and Hotel Lights, 10 runs each) was run
-separately. Its results are not in this repository yet and will be added.
+**Behaviour check** (`results/behaviour-20260926/rp2-production/`).
+- **In the DCP4 window.** The harness also tried three behaviour profiles there. Those calls
+  exited at once with status 2 and no output, because v0.4.29 has no `--reasoning-effort` option
+  (`window.log`).
+- **Setup.** The check then ran on the production server with the RP2 image (DCP4), on
+  2026-09-26 from 13:15 to 13:24 (`run.sh`, `progress.log`).
+  - Upstream `llm-inference-bench` at commit 42c38fd, unmodified. That commit adds
+    `--reasoning-effort` to the task profiles; the script's version string is still 0.4.29.
+  - 10 runs per profile at concurrency 10, reasoning effort high.
+  - Each profile's own token setting: Estonia sends a 40,000-token limit, and Hotel Lights and
+    LAVD send none.
+  - The weekly case-law job was also loading the server at the time.
+- **Results**, as scored by each profile's built-in scorer:
+  - Hotel Lights: 9/10 correct.
+  - LAVD: 10/10 (2 exact, 8 near).
+  - Estonia: 9/10.
+  - No truncations or request errors. Every run finished with `stop`, none hit a token limit,
+    and none returned an error.
+- **No reference result yet.** A same-window comparison with the reference kernels is scheduled.
+  No reference-kernel result at these settings exists yet.
+- **Not included.** An earlier attempt was aborted before it finished.
 
 ### 7.4 GPU 3 at 350 W (2026-09-26)
 
@@ -1285,7 +1315,7 @@ After the A/Bs above, the owner raised GPU 3's power limit from 300 W to 350 W.
 
 **Check.** Two passes on the production server, which runs the release configuration: RP2 image,
 TP4/DCP4, MTP3, 48 sequences, 8,192 batched tokens, GMU 0.88, FP8 KV
-(`results/speed-20260926/gpu3-350w/`, 2026-09-26, 14:15-14:30).
+(`results/speed-20260926/gpu3-350w/`, 2026-09-26, 14:15-14:30 by the clock log).
 - **Order.** The 350 W pass ran first, then a 300 W pass. Single runs.
 - **Method.** C1 decode with the greedy fixed-input method of the DCP1 table (`bench_fixed.py`,
   temperature 0, 20 s cells, at most 8,192 tokens); prefill with `llm_decode_bench.py
@@ -1307,10 +1337,12 @@ Decode values are tokens/s with MTP acceptance in parentheses, to three decimals
 `summary.json`.
 
 **Reading.**
-- **Clocks.** GPU 3's median SM clock under load went from 2,085 MHz to 2,625 MHz. The Max-Q
-  cards stayed at about 2,220 MHz (2,212-2,242 MHz) and now set the pace. GPU 1 ran at 2,407 MHz
-  in the 300 W pass and 2,280 MHz in the 350 W pass. "Under load" means polls in which all four
-  GPUs were at 90% utilization or more (`clocks.csv`; the medians are in `summary.json`).
+- **Clocks.** GPU 3's median SM clock under load went from 2,085 MHz to 2,625 MHz.
+  - At 350 W, GPU 3's clock under load (2,625 MHz) is above the Max-Q cards' (about 2,220 MHz;
+    2,212-2,242 MHz in both passes). Which card limits throughput was not measured directly.
+  - GPU 1 ran at 2,407 MHz in the 300 W pass and 2,280 MHz in the 350 W pass.
+  - "Under load" means polls in which all four GPUs were at 90% utilization or more
+    (`clocks.csv`; the medians are in `summary.json`; the rule is in section 8.4).
 - **Prefill** was 6-8% faster at 350 W.
 - **Decode is confounded by MTP acceptance.** At equal acceptance (0K, 0.498 in both passes) it
   was 7% faster. Dividing each rate by the expected tokens per step (1 + 3a) gives an approximate
@@ -1402,10 +1434,14 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
    - `B12X_TREE=<check tree> EP_OUT=/work/results/<name>.json scripts/run_epipar_check.sh`.
    - `MODE=save scripts/run_final_identity.sh`, then `MODE=compare scripts/run_final_identity.sh`
      with the release image.
-10. **Release speed.** The harnesses are next to their results: `results/speed-20260926/dcp1/`
-    (`run.py`, `quick.sh`, `bench_fixed.py`), `results/speed-20260926/dcp4/` (`window.py`) and
-    `results/speed-20260926/gpu3-350w/` (`quick8000.sh`). Like the window scripts, they operate
-    our host and are a record of the procedure.
+10. **Release speed and behaviour.** The harnesses are next to their results:
+    - `results/speed-20260926/dcp1/` (`run.py`, `quick.sh`, `bench_fixed.py`);
+    - `results/speed-20260926/dcp4/` (`window.py`);
+    - `results/speed-20260926/gpu3-350w/` (`quick8000.sh`);
+    - `results/behaviour-20260926/rp2-production/` (`run.sh`, which needs a checkout of upstream
+      `llm-inference-bench` at commit 42c38fd).
+
+    Like the window scripts, they operate our host and are a record of the procedure.
 
 ### 8.4 Re-deriving the reported numbers (no GPU)
 
@@ -1429,10 +1465,17 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
   `summary.json` byte for byte from the raw files next to it; run it on a copy. The DCP1 values
   are `aggregate_tps` and `server_spec_accept_rate` of each `decode-*-c1.json`, and
   `tok_per_sec` of each `prefill-quick.json`. The GPU 3 check reads the same fields from
-  `gpu3-350w/w300/` and `gpu3-350w/w350/`. Its clock medians follow from `gpu3-350w/clocks.csv`
-  (columns: time, GPU, SM clock, power, utilization, temperature): take each four-GPU poll with
-  every GPU at 90% utilization or more, split at the gap between the passes (14:21:57-14:22:51),
-  and take the median per GPU.
+  `gpu3-350w/w300/` and `gpu3-350w/w350/`.
+- **GPU 3 clock medians.** They follow from `gpu3-350w/clocks.csv`, whose columns are time, GPU,
+  SM clock, power, utilization and temperature.
+  1. A poll is four consecutive lines, GPUs 0 to 3. Their timestamps differ by milliseconds and
+     can fall on either side of a second boundary, so do not group lines by whole seconds.
+  2. Keep the polls in which all four GPUs are at 90% utilization or more.
+  3. Split them at the gap between the passes (14:21:57-14:22:51).
+  4. Take the median SM clock per GPU. This gives the values in `summary.json`.
+- **Behaviour check.** The counts come from the `runs` list of each
+  `results/behaviour-20260926/rp2-production/profile-*.json`: `correct`, `score_label`,
+  `finish_reason`, `hit_max_tokens` and `error`. They agree with each file's `selected_summary`.
 - **KL divergence.** Every production window includes three kinds of score record:
   - `scores/*.json`, the per-window records. Each window's `true_decode_mean_kld` is the mean of
     `kld[1:]` in the matching `.npz`.
@@ -1503,7 +1546,10 @@ telemetry and clock logs, except `results/speed-20260926/gpu3-350w/clocks.csv`.
    sha256 of the copy we ran is
    `7239958032ec10781d7db3efca23a7602bd9aeb94455a723e2634ab7d6fe546a`. It produced every speed
    number. The DCP1 release decode cells ran it through the fixed-input wrapper
-   `results/speed-20260926/dcp1/bench_fixed.py`, which checks that sha256 before it runs.
+   `results/speed-20260926/dcp1/bench_fixed.py`, which checks that sha256 before it runs. The
+   behaviour check used a clean checkout of the same repository at commit
+   `42c38fdd0476cf86940268f4e098581e5b61542e`, whose `llm_decode_bench.py` has sha256
+   `c1d9b66dbf70df23545a71451b5bc2ecaaa746ed2441312e4fb77a8bf476504a`.
 
 ### 9.2 Background
 
@@ -1591,6 +1637,7 @@ results/
     dcp1/                                                DCP1 A/B: outputs, launch argv, harness
     dcp4/                                                DCP4 A/B: outputs, audits, summary, harness
     gpu3-350w/                                           GPU 3 at 300 W and 350 W (section 7.4)
+  behaviour-20260926/rp2-production/                   behaviour check (section 7.3): JSON, logs, run.sh
 ```
 
 `RESULTS.md` and `PREREG.md` name files by their paths in the testing workspace:
@@ -1598,5 +1645,6 @@ results/
 - `results/b12x-dx2-guards.diff` is `patches/b12x-dx2-guards.diff`.
 
 The release speed harnesses name the workspace directories: `dcp1-speed-20260926/` there is
-`results/speed-20260926/dcp1/` here, `bench-20260926/` is `results/speed-20260926/dcp4/`, and
-`prod-speed-gpu3-20260926/` is `results/speed-20260926/gpu3-350w/`.
+`results/speed-20260926/dcp1/` here, `bench-20260926/` is `results/speed-20260926/dcp4/`,
+`prod-speed-gpu3-20260926/` is `results/speed-20260926/gpu3-350w/`, and
+`bench-20260926/profiles-rp2-production/` is `results/behaviour-20260926/rp2-production/`.

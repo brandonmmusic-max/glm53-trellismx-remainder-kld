@@ -3,9 +3,10 @@
 These are the scripts exactly as they ran, plus one summary script added for this repository
 (`summarize_rowpack_timing.py`, marked below). One line differs from the testing workspace:
 `build_rp2_epipar_b12x.py` imports the RP2 builder under its name here, `build_dx2_rp2_b12x.py`
-(it is `build_dx2_b12x.py` in the workspace). The speed harnesses of the RP2 release sit next to
-their results in `../results/speed-20260926/` (see the end of this file). Local paths are replaced
-by placeholders:
+(it is `build_dx2_b12x.py` in the workspace). The speed and behaviour harnesses of the RP2
+release sit next to their results in `../results/speed-20260926/` and
+`../results/behaviour-20260926/` (see the end of this file). Local paths are replaced by
+placeholders:
 `<workspace>` (the directory that held the working repositories), `<home>`,
 `<data-volume>` (captures, BF16 source shards, teacher logits) and `<model-volume>`
 (the TrellisMX r27 checkpoint). Set these to your own locations before running anything.
@@ -105,7 +106,7 @@ ran.
 | `run_epipar_check.sh`, `epipar_check.py` | EPI-PAR check in the serving image with an EPI-PAR tree mounted (`B12X_TREE`, default `b12x-rp2par`; output file from `EP_OUT`). Four arms (prod, prod + EPI-PAR, rp2, rp2 + EPI-PAR) on layers 8 and 3. The bit-identity gate runs first; timing (60 blocks x 200 CUDA-graph replays per arm, arm order rotated every block) runs only if it passes. The docstring mentions a percentile interval, but the script records only medians and the raw per-block times. It exits nonzero if the identity gate fails (added after the recorded runs, which passed). The launcher also passes `ZR_*` variables that this script does not read. | `results/epipar_check_both.json` (tree `b12x-rp2par`), `results/epipar_check_k5.json` (tree `b12x-rp2par-k5`), and their `.log` files |
 | `run_final_identity.sh`, `final_identity_check.py` | Release pre-flight. `MODE=save` runs the r27 reference image with the measured `b12x-dx2rp2` tree mounted and saves the prod and rp2 outputs. `MODE=compare` runs the release image with its own b12x and requires rp2 + EPI-PAR and rp2 to equal the saved rp2 outputs, and prod and prod + EPI-PAR to equal the saved prod outputs (`torch.equal`; layers 3, 8, 23, 43; ranks 0 and 3; M1, M4, M16, M64). In compare mode it exits nonzero if any cell fails (added after the recorded run, which passed). | `results/final_identity_check.json`, `results/final_identity_save.log`, `results/final_identity_compare.log` (the saved `.pt` outputs are not included) |
 
-## Release speed harnesses (in `../results/speed-20260926/`)
+## Release speed and behaviour harnesses (in `../results/`)
 
 | File | Purpose |
 |---|---|
@@ -115,3 +116,4 @@ ran.
 | `dcp4/window.py` | DCP4 production window: stops production, runs the reference arm and then the release arm, and restores production. With the `SWITCH_TO_RP2` flag file present, as it was, production comes back on the release image, with a rollback to the reference container if that is not healthy. |
 | `dcp4/summarize.py` | Rebuilds `dcp4/summary.json` from the raw files next to it (byte for byte; it rewrites the file, so run it on a copy). |
 | `gpu3-350w/quick8000.sh` | `quick.sh` adapted for the GPU 3 power check: the same C1 cells through `bench_fixed.py` and the same prefill pass, against the production server on port 8000, writing to the pass directory (`w350`, `w300`). Its header comment still says port 8038, and it sets an unused `W` variable. No script for `summary.json` or `clocks.csv` is included; they came from ad hoc commands. Section 8.4 of the top-level README gives the clock rule, which reproduces the medians in `summary.json`. |
+| `rp2-production/run.sh` (in `behaviour-20260926/`) | Runs the Hotel Lights, LAVD and Estonia profiles, 10 runs each at concurrency 10 with reasoning effort high, against the production server on port 8000, with a checkout of upstream `llm-inference-bench` at commit 42c38fd. It writes `profile-*.json`, `profile-*.log` and `progress.log` next to itself. |
