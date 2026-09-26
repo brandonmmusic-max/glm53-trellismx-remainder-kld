@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Large or regenerable artifacts (not part of this repository)
+*.pt
+*.safetensors
+*.logits.f32
+b12x-scratch/
+b12x-dx2/
+cache/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

@@ -1,0 +1,87 @@
+19:00:39 production idle 30 s; stopping trellismx-klc.service for the approved window
+19:00:43 production stopped; model-stack and llm-workload leases held
+19:00:43 KLD control: starting capture server
+19:02:58 KLD control: server healthy (0 P8_DX2_ROWPACK_ACTIVE lines); capturing 32 windows
+19:03:24 {"arm": "control", "window": "conditional-fit-0056", "kld": 0.02398873443425027, "seconds": 25.9}
+19:03:50 {"arm": "control", "window": "conditional-fit-0008", "kld": 0.0676906878249516, "seconds": 25.9}
+19:04:16 {"arm": "control", "window": "conditional-fit-0100", "kld": 0.02619577489893325, "seconds": 25.8}
+19:04:42 {"arm": "control", "window": "conditional-fit-0094", "kld": 0.019256608317986746, "seconds": 25.8}
+19:05:08 {"arm": "control", "window": "conditional-fit-0083", "kld": 0.03137379572872525, "seconds": 25.8}
+19:05:33 {"arm": "control", "window": "conditional-fit-0021", "kld": 0.0433096570524299, "seconds": 25.7}
+19:05:59 {"arm": "control", "window": "conditional-fit-0098", "kld": 0.05181178728549144, "seconds": 25.9}
+19:06:25 {"arm": "control", "window": "conditional-fit-0080", "kld": 0.04658872198337803, "seconds": 25.7}
+19:06:51 {"arm": "control", "window": "conditional-fit-0081", "kld": 0.024987097586999484, "seconds": 25.8}
+19:07:16 {"arm": "control", "window": "conditional-fit-0123", "kld": 0.03299536947534079, "seconds": 25.7}
+19:07:42 {"arm": "control", "window": "conditional-fit-0090", "kld": 0.04011441446547326, "seconds": 25.9}
+19:08:08 {"arm": "control", "window": "conditional-fit-0062", "kld": 0.028465825209700438, "seconds": 25.7}
+19:08:34 {"arm": "control", "window": "conditional-fit-0047", "kld": 0.022968138919185078, "seconds": 25.8}
+19:08:59 {"arm": "control", "window": "conditional-fit-0051", "kld": 0.01342305186189738, "seconds": 25.8}
+19:09:25 {"arm": "control", "window": "conditional-fit-0055", "kld": 0.02347028804976432, "seconds": 25.7}
+19:09:51 {"arm": "control", "window": "conditional-fit-0031", "kld": 0.019300574794999543, "seconds": 25.8}
+19:10:17 {"arm": "control", "window": "conditional-fit-0003", "kld": 0.02646966701770994, "seconds": 25.8}
+19:10:43 {"arm": "control", "window": "conditional-fit-0009", "kld": 0.0442713741415047, "seconds": 25.8}
+19:11:08 {"arm": "control", "window": "conditional-fit-0010", "kld": 0.015442558564525727, "seconds": 25.7}
+19:11:34 {"arm": "control", "window": "conditional-fit-0011", "kld": 0.017863977091436226, "seconds": 25.8}
+19:12:00 {"arm": "control", "window": "conditional-fit-0030", "kld": 0.024338653963730833, "seconds": 25.8}
+19:12:26 {"arm": "control", "window": "conditional-fit-0032", "kld": 0.02228465021218168, "seconds": 25.9}
+19:12:51 {"arm": "control", "window": "conditional-fit-0035", "kld": 0.031787825152148674, "seconds": 25.7}
+19:13:17 {"arm": "control", "window": "conditional-fit-0040", "kld": 0.05432114460382225, "seconds": 25.7}
+19:13:43 {"arm": "control", "window": "conditional-fit-0041", "kld": 0.08943249444875521, "seconds": 25.8}
+19:14:09 {"arm": "control", "window": "conditional-fit-0046", "kld": 0.0639038496272309, "seconds": 25.9}
+19:14:35 {"arm": "control", "window": "conditional-fit-0060", "kld": 0.015792655635987987, "seconds": 25.8}
+19:15:00 {"arm": "control", "window": "conditional-fit-0063", "kld": 0.030009126577367547, "seconds": 25.8}
+19:15:26 {"arm": "control", "window": "conditional-fit-0074", "kld": 0.08574293213245458, "seconds": 25.9}
+19:15:52 {"arm": "control", "window": "conditional-fit-0099", "kld": 0.016334566354318496, "seconds": 25.9}
+19:16:18 {"arm": "control", "window": "conditional-fit-0113", "kld": 0.05293993924804773, "seconds": 25.8}
+19:16:44 {"arm": "control", "window": "conditional-fit-0118", "kld": 0.013536462899879398, "seconds": 25.9}
+19:16:46 KLD control: complete
+19:16:46 KLD rp: starting capture server
+19:19:46 KLD rp: server healthy (168 P8_DX2_ROWPACK_ACTIVE lines); capturing 32 windows
+19:20:12 {"arm": "rp", "window": "conditional-fit-0056", "kld": 0.023461414579147886, "seconds": 26.1}
+19:20:38 {"arm": "rp", "window": "conditional-fit-0008", "kld": 0.0693098252692617, "seconds": 26.1}
+19:21:05 {"arm": "rp", "window": "conditional-fit-0100", "kld": 0.02553853691255682, "seconds": 26.1}
+19:21:31 {"arm": "rp", "window": "conditional-fit-0094", "kld": 0.01966569264422289, "seconds": 26.1}
+19:21:57 {"arm": "rp", "window": "conditional-fit-0083", "kld": 0.031123433606537913, "seconds": 26.0}
+19:22:23 {"arm": "rp", "window": "conditional-fit-0021", "kld": 0.03879322265450594, "seconds": 26.0}
+19:22:49 {"arm": "rp", "window": "conditional-fit-0098", "kld": 0.04994734275820931, "seconds": 26.1}
+19:23:15 {"arm": "rp", "window": "conditional-fit-0080", "kld": 0.04164886390287199, "seconds": 26.2}
+19:23:41 {"arm": "rp", "window": "conditional-fit-0081", "kld": 0.02450840640205915, "seconds": 26.1}
+19:24:07 {"arm": "rp", "window": "conditional-fit-0123", "kld": 0.037978360871228585, "seconds": 26.0}
+19:24:33 {"arm": "rp", "window": "conditional-fit-0090", "kld": 0.04110893665444328, "seconds": 26.1}
+19:24:59 {"arm": "rp", "window": "conditional-fit-0062", "kld": 0.025576070900547046, "seconds": 26.2}
+19:25:26 {"arm": "rp", "window": "conditional-fit-0047", "kld": 0.025898609504129085, "seconds": 26.1}
+19:25:52 {"arm": "rp", "window": "conditional-fit-0051", "kld": 0.015260705883234913, "seconds": 26.1}
+19:26:18 {"arm": "rp", "window": "conditional-fit-0055", "kld": 0.028199375285841127, "seconds": 26.2}
+19:26:44 {"arm": "rp", "window": "conditional-fit-0031", "kld": 0.021954501978514077, "seconds": 26.1}
+19:27:10 {"arm": "rp", "window": "conditional-fit-0003", "kld": 0.028220948342479634, "seconds": 26.2}
+19:27:36 {"arm": "rp", "window": "conditional-fit-0009", "kld": 0.044689875103662326, "seconds": 26.1}
+19:28:02 {"arm": "rp", "window": "conditional-fit-0010", "kld": 0.01592442761796403, "seconds": 26.1}
+19:28:28 {"arm": "rp", "window": "conditional-fit-0011", "kld": 0.017671133747595155, "seconds": 26.1}
+19:28:55 {"arm": "rp", "window": "conditional-fit-0030", "kld": 0.023423894366144615, "seconds": 26.2}
+19:29:21 {"arm": "rp", "window": "conditional-fit-0032", "kld": 0.03574976290031252, "seconds": 26.2}
+19:29:47 {"arm": "rp", "window": "conditional-fit-0035", "kld": 0.015439741183889409, "seconds": 26.1}
+19:30:13 {"arm": "rp", "window": "conditional-fit-0040", "kld": 0.05178330966122632, "seconds": 26.2}
+19:30:39 {"arm": "rp", "window": "conditional-fit-0041", "kld": 0.08474137557685467, "seconds": 26.2}
+19:31:05 {"arm": "rp", "window": "conditional-fit-0046", "kld": 0.04866470617354932, "seconds": 26.1}
+19:31:32 {"arm": "rp", "window": "conditional-fit-0060", "kld": 0.015553003540115785, "seconds": 26.2}
+19:31:58 {"arm": "rp", "window": "conditional-fit-0063", "kld": 0.026833369463796226, "seconds": 26.0}
+19:32:24 {"arm": "rp", "window": "conditional-fit-0074", "kld": 0.049310744682531146, "seconds": 26.1}
+19:32:50 {"arm": "rp", "window": "conditional-fit-0099", "kld": 0.012037098557734171, "seconds": 26.2}
+19:33:16 {"arm": "rp", "window": "conditional-fit-0113", "kld": 0.05484040987540332, "seconds": 26.2}
+19:33:42 {"arm": "rp", "window": "conditional-fit-0118", "kld": 0.013163577073840634, "seconds": 26.2}
+19:33:44 KLD rp: complete
+19:33:45 {"schema": "p8-dx2-rp-kld-cf32.v1", "evidence": "development comparison on already-opened conditional-fit; one server per arm, fixed order control->rp; not final qualification", "rp_minus_control": -0.0019497414964436775, "paired_window_bca95": [-0.005975149242014978, 0.00011846837634697087], "relative_change": -0.05568639509572317, "rp_lower_windows": 19, "reading": "no detectable change", "control_vs_published_20260909": {"published_mean": 0.03545622377215776, "max_abs_window_diff": 0.0032587375357873774, "identical_windows": 0}, "limits": ["MTP off, maxseq1 forced decode: every token uses the M1 direct path, where D-x2-RP is active.", "Prefill (M>16) is unchanged by design; the prefill row is excluded from the score.", "Fixed order, one server preparation per arm; window intervals do not capture server-run variability."]}
+19:33:45 speed control: starting production-config server on :8038
+19:38:24 {"speed": "control", "ctx": "0", "conc": "1", "rc": 0, "aggregate_tps": [184.32665261143288], "gate": {"waited_s": 79.6, "passed": true, "temps": ["48", "34", "36", "40"]}}
+19:40:44 {"speed": "control", "ctx": "0", "conc": "4", "rc": 0, "aggregate_tps": [300.0830310130945], "gate": {"waited_s": 91.4, "passed": true, "temps": ["48", "34", "38", "40"]}}
+19:43:05 {"speed": "control", "ctx": "8192", "conc": "1", "rc": 0, "aggregate_tps": [184.11733134941355], "gate": {"waited_s": 91.7, "passed": true, "temps": ["48", "34", "37", "39"]}}
+19:45:27 {"speed": "control", "ctx": "8192", "conc": "4", "rc": 0, "aggregate_tps": [300.7024376071974], "gate": {"waited_s": 91.6, "passed": true, "temps": ["48", "34", "37", "39"]}}
+19:45:28 speed control: complete
+19:45:28 speed rp: starting production-config server on :8038
+19:50:33 {"speed": "rp", "ctx": "0", "conc": "1", "rc": 0, "aggregate_tps": [191.14031573801472], "gate": {"waited_s": 79.3, "passed": true, "temps": ["45", "33", "35", "37"]}}
+19:52:54 {"speed": "rp", "ctx": "0", "conc": "4", "rc": 0, "aggregate_tps": [301.1665759356005], "gate": {"waited_s": 92.2, "passed": true, "temps": ["47", "34", "37", "39"]}}
+19:55:13 {"speed": "rp", "ctx": "8192", "conc": "1", "rc": 0, "aggregate_tps": [193.8721822074907], "gate": {"waited_s": 90.6, "passed": true, "temps": ["48", "34", "38", "39"]}}
+19:57:35 {"speed": "rp", "ctx": "8192", "conc": "4", "rc": 0, "aggregate_tps": [298.9833441706304], "gate": {"waited_s": 91.7, "passed": true, "temps": ["48", "34", "38", "39"]}}
+19:57:37 speed rp: complete
+19:57:37 restoring production via systemctl --user start trellismx-klc.service (adopts the unchanged container)
+20:00:59 production restoration: healthy (service active)

@@ -1,0 +1,15 @@
+{
+  "window_id": "conditional-fit-0113",
+  "domain": "axis2_legal",
+  "prediction_rows": 2047,
+  "true_decode_rows": 2046,
+  "true_decode_mean_kld": 0.05293993924804773,
+  "including_prefill_mean_kld": 0.05359366895262388,
+  "prefill_row_kld": 1.3911246445154333,
+  "raw_sha256": "442ee740d387ab365b0d297edb1a2ed7faaae6a6dcbfd194e9edbc69ab88d259",
+  "score_sha256": "143cf7af1ccde459034136d1d72eda9cde1b325bd3fc5ed5bae6d850d9a6c088",
+  "teacher_sha256": "6dc5f38f3436d6833b0ab68ce34e0f7ee5cde80359c26602526d8de512fd3207",
+  "token_sha256": "742ab50951388e712d20dab49b12ad7eb31490cfe5091a2fbc76f31ed8fa1b09",
+  "raw_retirement": "after durable score and verified raw hash",
+  "raw_bytes": 1268157440
+}

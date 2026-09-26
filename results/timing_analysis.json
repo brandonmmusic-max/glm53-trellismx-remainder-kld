@@ -1,0 +1,95 @@
+{
+ "raw": "results/timing_raw.json",
+ "gpu": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+ "blocks_per_input_set": 60,
+ "replays_per_block": 200,
+ "cells": [
+  {
+   "layer": 8,
+   "bits": 4,
+   "m": 1,
+   "blocks": 240,
+   "base_us_median": 109.67423915863037,
+   "zr_us_median": 117.30703830718994,
+   "ratio_median": 1.0698293613585306,
+   "ratio_ci95": [
+    1.0696550341186768,
+    1.0699226088257632
+   ],
+   "exact_and_controls_ok": true
+  },
+  {
+   "layer": 8,
+   "bits": 4,
+   "m": 4,
+   "blocks": 240,
+   "base_us_median": 135.00088214874268,
+   "zr_us_median": 157.2764778137207,
+   "ratio_median": 1.165009279662706,
+   "ratio_ci95": [
+    1.164790057085277,
+    1.1653154371097894
+   ],
+   "exact_and_controls_ok": true
+  },
+  {
+   "layer": 8,
+   "bits": 4,
+   "m": 16,
+   "blocks": 240,
+   "base_us_median": 455.8080863952637,
+   "zr_us_median": 516.4391136169434,
+   "ratio_median": 1.1341060948827173,
+   "ratio_ci95": [
+    1.133373281735683,
+    1.1364216811464325
+   ],
+   "exact_and_controls_ok": true
+  },
+  {
+   "layer": 3,
+   "bits": 5,
+   "m": 1,
+   "blocks": 240,
+   "base_us_median": 114.70992088317871,
+   "zr_us_median": 124.51784133911133,
+   "ratio_median": 1.085435789109656,
+   "ratio_ci95": [
+    1.0853024025717746,
+    1.085544335631821
+   ],
+   "exact_and_controls_ok": true
+  },
+  {
+   "layer": 3,
+   "bits": 5,
+   "m": 4,
+   "blocks": 240,
+   "base_us_median": 150.18199920654297,
+   "zr_us_median": 172.65439987182617,
+   "ratio_median": 1.148390597507159,
+   "ratio_ci95": [
+    1.1405721928930919,
+    1.1553119000772742
+   ],
+   "exact_and_controls_ok": true
+  },
+  {
+   "layer": 3,
+   "bits": 5,
+   "m": 16,
+   "blocks": 240,
+   "base_us_median": 450.3280830383301,
+   "zr_us_median": 499.73262786865234,
+   "ratio_median": 1.1155445215238422,
+   "ratio_ci95": [
+    1.1152974511112372,
+    1.1156966290291332
+   ],
+   "exact_and_controls_ok": true
+  }
+ ],
+ "all_checks_exact": true,
+ "decision_rule": "PASS iff median Z/base <= 1.03 at M1 and M4 for both layers and all outputs exact",
+ "decision": "FAIL"
+}
