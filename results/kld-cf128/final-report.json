@@ -1,0 +1,280 @@
+{
+ "preregistered": {
+  "rp2_minus_control": {
+   "diff": -0.0016785020574995979,
+   "relative": -0.048960769115309374,
+   "bca95": [
+    -0.0024956284805871835,
+    -0.0006026979839882961
+   ],
+   "relative_bca95": [
+    -0.07279579389830369,
+    -0.017580292325808163
+   ],
+   "a_lower_windows": 105,
+   "windows": 128,
+   "ci_includes_0": false,
+   "equivalent_5pct": false,
+   "equivalent_10pct": true
+  },
+  "rp2_minus_tr3": {
+   "diff": 0.002504144705582164,
+   "relative": 0.08319432842180204,
+   "bca95": [
+    0.0005985161302741306,
+    0.004364100955470181
+   ],
+   "relative_bca95": [
+    0.01988429318672147,
+    0.14498700787775765
+   ],
+   "a_lower_windows": 36,
+   "windows": 128,
+   "ci_includes_0": false,
+   "equivalent_5pct": false,
+   "equivalent_10pct": false
+  },
+  "control_minus_tr3": {
+   "diff": 0.004182646763081763,
+   "relative": 0.13895861836758935,
+   "bca95": [
+    0.002105939800889434,
+    0.00613680681434055
+   ],
+   "relative_bca95": [
+    0.06996490539911067,
+    0.2038809979452478
+   ],
+   "a_lower_windows": 34,
+   "windows": 128,
+   "ci_includes_0": false,
+   "equivalent_5pct": false,
+   "equivalent_10pct": false
+  },
+  "reading_rp2_vs_control": "improvement"
+ },
+ "arm_means": {
+  "control-fp8": {
+   "mean": 0.034282591712284864,
+   "window_bca95": [
+    0.031470357724319324,
+    0.037842164488353716
+   ]
+  },
+  "rp2-fp8": {
+   "mean": 0.03260408965478527,
+   "window_bca95": [
+    0.029903341130615973,
+    0.03614770082847968
+   ]
+  },
+  "tr3-fp8": {
+   "mean": 0.0300999449492031,
+   "window_bca95": [
+    0.027710988904228576,
+    0.03297694947722066
+   ]
+  }
+ },
+ "first32_subset": {
+  "rp2_minus_control": {
+   "diff": -0.0023257790754824047,
+   "relative": -0.07460689734107005,
+   "bca95": [
+    -0.003976161155255524,
+    0.0006546899930881461
+   ],
+   "relative_bca95": [
+    -0.12754824834777978,
+    0.021001302152665574
+   ],
+   "a_lower_windows": 29,
+   "windows": 32,
+   "ci_includes_0": true,
+   "equivalent_5pct": false,
+   "equivalent_10pct": false
+  },
+  "rp2_minus_tr3": {
+   "diff": 0.000958593538149678,
+   "relative": 0.03437123966195851,
+   "bca95": [
+    -0.0026827677567962302,
+    0.003819342215985331
+   ],
+   "relative_bca95": [
+    -0.09619306813209506,
+    0.13694597494373023
+   ],
+   "a_lower_windows": 11,
+   "windows": 32,
+   "ci_includes_0": true,
+   "equivalent_5pct": false,
+   "equivalent_10pct": false
+  },
+  "control_minus_tr3": {
+   "diff": 0.003284372613632083,
+   "relative": 0.11776415524375741,
+   "bca95": [
+    -0.0006635039848095749,
+    0.006799582864561913
+   ],
+   "relative_bca95": [
+    -0.023790536417108054,
+    0.24380520307942194
+   ],
+   "a_lower_windows": 11,
+   "windows": 32,
+   "ci_includes_0": true,
+   "equivalent_5pct": false,
+   "equivalent_10pct": false
+  }
+ },
+ "per_domain_mean": {
+  "axis1_general": {
+   "control-fp8": 0.03624020898125955,
+   "rp2-fp8": 0.035001365972180315,
+   "tr3-fp8": 0.03112982661782007
+  },
+  "axis2_legal": {
+   "control-fp8": 0.04187414703535882,
+   "rp2-fp8": 0.03867589908100444,
+   "tr3-fp8": 0.031600521727854144
+  },
+  "axis3_code_agentic": {
+   "control-fp8": 0.030378514969524366,
+   "rp2-fp8": 0.029330270755001008,
+   "tr3-fp8": 0.0306440277097925
+  },
+  "axis4_reasoning_termination": {
+   "control-fp8": 0.021105956481495127,
+   "rp2-fp8": 0.02044020530859131,
+   "tr3-fp8": 0.022925700801744282
+  }
+ },
+ "row_level_reported_only": {
+  "rp2-fp8_vs_control-fp8": {
+   "row_mean_ratio": 0.9510392308846908,
+   "row_median_ratio": 0.9587924687511632,
+   "q90_ratio": 0.947764482959505,
+   "q99_ratio": 0.9445201480999468,
+   "q999_ratio": 0.9606999818405444,
+   "trimmed_mean_ratio_pooled_q995": 0.9490005732701685,
+   "rows_lower_fraction": 0.5294171554252199,
+   "window_medians_lower": 100
+  },
+  "rp2-fp8_vs_tr3-fp8": {
+   "row_mean_ratio": 1.083194328421802,
+   "row_median_ratio": 1.1229507797778615,
+   "q90_ratio": 1.0944316158464629,
+   "q99_ratio": 1.065798293368485,
+   "q999_ratio": 1.092475248805261,
+   "trimmed_mean_ratio_pooled_q995": 1.0805417037790392,
+   "rows_lower_fraction": 0.4655043377321603,
+   "window_medians_lower": 33
+  },
+  "control-fp8_vs_tr3-fp8": {
+   "row_mean_ratio": 1.138958618367589,
+   "row_median_ratio": 1.1712136008332608,
+   "q90_ratio": 1.154750611068451,
+   "q99_ratio": 1.1284018615299087,
+   "q999_ratio": 1.1371658888889085,
+   "trimmed_mean_ratio_pooled_q995": 1.1350608674551643,
+   "rows_lower_fraction": 0.44936003176930595,
+   "window_medians_lower": 32
+  }
+ },
+ "first32_vs_earlier_runs": {
+  "control_fp8_window3": 0.031173780955532325,
+  "control_fp8_window2": 0.03119583218807839,
+  "tr3_fp8_window3": 0.02788940834190024,
+  "tr3_fp8_20260909": 0.028189927801987147,
+  "rp2_fp8_window3": 0.02884800188004992,
+  "control_run_to_run": -0.0007068646995251893,
+  "tr3_run_to_run": -0.010660526064409481
+ },
+ "speed": {
+  "ctx0-c1": {
+   "control_nvfp4_w1": {
+    "tps": 184.32665261143288,
+    "mtp_accept": 0.43555555555555553
+   },
+   "rp_nvfp4_w1": {
+    "tps": 191.14031573801472,
+    "mtp_accept": 0.5526315789473685
+   },
+   "rp_fp8_w2": {
+    "tps": 192.9676145814267,
+    "mtp_accept": 0.5281385281385281
+   },
+   "rp2_fp8_w3": {
+    "tps": 196.38579751723105,
+    "mtp_accept": 0.4458874458874459
+   }
+  },
+  "ctx0-c4": {
+   "control_nvfp4_w1": {
+    "tps": 300.0830310130945,
+    "mtp_accept": 0.55
+   },
+   "rp_nvfp4_w1": {
+    "tps": 301.1665759356005,
+    "mtp_accept": 0.553763440860215
+   },
+   "rp_fp8_w2": {
+    "tps": 293.8385614823127,
+    "mtp_accept": 0.5887096774193549
+   },
+   "rp2_fp8_w3": {
+    "tps": 297.905407753548,
+    "mtp_accept": 0.5026881720430108
+   }
+  },
+  "ctx8192-c1": {
+   "control_nvfp4_w1": {
+    "tps": 184.11733134941355,
+    "mtp_accept": 0.5384615384615384
+   },
+   "rp_nvfp4_w1": {
+    "tps": 193.8721822074907,
+    "mtp_accept": 0.6096491228070176
+   },
+   "rp_fp8_w2": {
+    "tps": 193.37335573459333,
+    "mtp_accept": 0.4868421052631579
+   },
+   "rp2_fp8_w3": {
+    "tps": 200.7052795259431,
+    "mtp_accept": 0.5307017543859649
+   }
+  },
+  "ctx8192-c4": {
+   "control_nvfp4_w1": {
+    "tps": 300.7024376071974,
+    "mtp_accept": 0.6694444444444444
+   },
+   "rp_nvfp4_w1": {
+    "tps": 298.9833441706304,
+    "mtp_accept": 0.6555555555555556
+   },
+   "rp_fp8_w2": {
+    "tps": 303.95601766882,
+    "mtp_accept": 0.6129032258064516
+   },
+   "rp2_fp8_w3": {
+    "tps": 312.73146467914546,
+    "mtp_accept": 0.6075268817204301
+   }
+  }
+ },
+ "kv_capacity": {
+  "capture_control_fp8": [
+   "19,333,333 tokens, Maximum concurrency for 1,000,000 tokens per request: 19.33x"
+  ],
+  "capture_tr3_fp8": [
+   "24,950,413 tokens, Maximum concurrency for 1,000,000 tokens per request: 24.95x"
+  ],
+  "serving_rp2_fp8": [
+   "8,127,659 tokens, Maximum concurrency for 1,000,000 tokens per request: 8.13x"
+  ]
+ }
+}

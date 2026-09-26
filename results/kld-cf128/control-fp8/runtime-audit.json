@@ -1,0 +1,11 @@
+{
+  "startup_sha256": "35490142397499357dc161a0226d2a7c4f658db904855fb9f095d7622685cfed",
+  "capture_image_id": "sha256:0405a1c0dc128b51069798a5d00b346257bbd006c0deb7e6530a3d005d75de71",
+  "kv_cache": "fp8",
+  "kv_cache_size": [
+    "19,333,333 tokens, Maximum concurrency for 1,000,000 tokens per request: 19.33x"
+  ],
+  "rp_marker_lines": 0,
+  "image": "sha256:0405a1c0dc128b51069798a5d00b346257bbd006c0deb7e6530a3d005d75de71",
+  "started": 1790386071.031144
+}

@@ -1,0 +1,37 @@
+{
+  "argv": [
+    "python3",
+    "<workspace>/trellismx-performance-audit-20260908/llm_decode_bench.py",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "8038",
+    "--model",
+    "glm53-flash-trellismx-p8-k45",
+    "--skip-prefill",
+    "--contexts",
+    "0",
+    "--concurrency",
+    "1",
+    "--duration",
+    "30",
+    "--max-tokens",
+    "2048",
+    "--cell-warmup-timeout-seconds",
+    "180",
+    "--display-mode",
+    "plain",
+    "--output",
+    "<workspace>/p8-remainder-kvrot-20260923/kld-cf128/speed/rp2-fp8/ctx0-c1.json"
+  ],
+  "cooling_gate": {
+    "waited_s": 71.1,
+    "passed": true,
+    "temps": [
+      "45",
+      "32",
+      "34",
+      "37"
+    ]
+  }
+}

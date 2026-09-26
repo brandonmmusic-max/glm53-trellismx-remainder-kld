@@ -301,3 +301,113 @@ M64 and M3072 are bit-identical to prod on both layers.
 The input-hop row-pack adds essentially no cost on top of the down-hop RP. Layer-level
 both-hop damage on the fresh B2 layers (reference `P-A8x2`) has a geometric mean of about
 0.68 (-32%), against 0.744 for down-only.
+
+## Amendment 7: final 128-window run, 2026-09-25/26 (FP8 MLA KV; preregistered primaries)
+
+Production was stopped at 21:25:35 via `systemctl --user stop trellismx-klc.service`. The arms ran in the fixed
+order:
+
+| arm | server healthy | capture complete | activation proof |
+|---|---|---|---|
+| control-fp8 | 21:27:51 | 22:22:59 | 0 `P8_DX2_ROWPACK_ACTIVE` lines |
+| rp2-fp8 | 22:26:00 | 23:22:17 | 168 `P8_DX2_ROWPACK_ACTIVE ... input_hop=1` lines |
+| tr3-fp8 | 23:25:18 | 00:24:23 | 0 lines (TR3 stack) |
+
+All 128 conditional-fit windows were scored in every arm (2,046 scored rows per window).
+
+**Arm means** (true-decode mean KLD, window-level BCa95):
+
+| arm | mean KLD | window BCa95 |
+|---|---|---|
+| control-fp8 | 0.0342826 | [0.03147, 0.03784] |
+| rp2-fp8 | 0.0326041 | [0.02990, 0.03615] |
+| tr3-fp8 | 0.0300999 | [0.02771, 0.03298] |
+
+**Preregistered paired primaries** (BCa95, 20,000 resamples, seed 20260902):
+
+| difference | mean | relative | BCa95 (relative) | A lower | CI includes 0 | within 5% | within 10% |
+|---|---|---|---|---|---|---|---|
+| rp2 - control | -0.001679 | -4.9% | [-0.002496, -0.000603] ([-7.3%, -1.8%]) | 105/128 | no | no | yes |
+| rp2 - tr3 | +0.002504 | +8.3% | [+0.000599, +0.004364] ([+2.0%, +14.5%]) | 36/128 | no | no | no |
+| control - tr3 | +0.004183 | +13.9% | [+0.002106, +0.006137] ([+7.0%, +20.4%]) | 34/128 | no | no | no |
+
+**Reading (preregistered rules).**
+- **Primary 1: RP2 improves on the control.** KLD falls by 4.9%, the CI excludes 0, and RP2 is lower in
+  105 of 128 windows.
+- **Primary 2: RP2 is NOT tied with TR3.** RP2 is 8.3% above TR3 and the CI [+2.0%, +14.5%] excludes 0. It is not
+  equivalent at +/-5% or at +/-10%.
+- RP2 closes 40% of the control's gap to TR3 (0.004183 -> 0.002504).
+- The interim look at 00:11 (47 windows: +5.4%, CI [-5.3%, +14.2%]) could not tell RP2 and TR3 apart. The full set
+  can: on the 96 windows scored for the first time, RP2 - TR3 is +9.8% [+2.1%, +16.9%] (reported only).
+
+**Reported only.**
+- The 96 new windows alone: rp2 - control -4.1% [-6.6%, -0.7%] (lower in 76/96); control - tr3 +14.5% [+6.7%, +21.9%].
+- The original 32 windows: rp2 - control -7.5% [-12.8%, +2.1%] (29/32 lower); rp2 - tr3 +3.4% [-9.6%, +13.7%].
+- Run-to-run stability on the original 32 windows:
+  - control-fp8 here vs window 2: 0.031174 vs 0.031196 (-0.07%);
+  - tr3-fp8 here vs 09-09: 0.027889 vs 0.028190 (-1.07%).
+
+  Run-level drift is about 1% or less, well below the 8.3% RP2-TR3 gap.
+- Row-level ratios (all 128 x 2,046 rows):
+
+  | comparison | mean | median | q90 | q99 | q99.9 | pooled-q99.5 trimmed | rows lower | window medians lower |
+  |---|---|---|---|---|---|---|---|---|
+  | rp2 vs control | -4.9% | -4.1% | -5.2% | -5.5% | -3.9% | -5.1% | 52.9% | 100/128 |
+  | rp2 vs tr3 | +8.3% | +12.3% | +9.4% | +6.6% | +9.2% | +8.1% | 46.6% | 33/128 |
+  | control vs tr3 | +13.9% | +17.1% | +15.5% | +12.8% | +13.7% | +13.5% | 44.9% | 32/128 |
+
+- Per-domain means:
+
+  | domain (windows) | control-fp8 | rp2-fp8 | tr3-fp8 |
+  |---|---|---|---|
+  | general (38) | 0.03624 | 0.03500 | 0.03113 |
+  | legal (37) | 0.04187 | 0.03868 | 0.03160 |
+  | code / agentic (37) | 0.03038 | 0.02933 | 0.03064 |
+  | reasoning / termination (16) | 0.02111 | 0.02044 | 0.02293 |
+
+  Per-domain paired differences (reported only, not preregistered). These are 12 intervals with no
+  multiplicity correction, and each domain has 16-38 windows.
+
+  | domain | rp2 - control | rp2 - tr3 | control - tr3 |
+  |---|---|---|---|
+  | general | -3.4% [-9.2, +4.7], 31/38 lower | +12.4% [+2.5, +22.7], 10/38 | +16.4% [+5.5, +28.5], 9/38 |
+  | legal | -7.6% [-10.1, -6.0], 35/37 lower | +22.4% [+13.8, +27.6], 4/37 | +32.5% [+24.1, +38.1], 2/37 |
+  | code / agentic | -3.5% [-7.0, +5.1], 30/37 lower | -4.3% [-19.0, +9.4], 13/37 | -0.9% [-15.6, +13.2], 14/37 |
+  | reasoning / termination | -3.2% [-10.0, +5.0], 9/16 lower | -10.8% [-31.1, +9.5], 9/16 | -7.9% [-30.9, +7.4], 9/16 |
+
+  The TR3 advantage sits in legal and general text. On code and reasoning, RP2 and TR3 cannot be told apart. RP2's
+  largest gain over the control is on legal text.
+- KV capacity in the capture profile (engine startup log): TrellisMX FP8 19,333,333 tokens; TR3 FP8 24,950,413 tokens.
+
+**Scope of the result.**
+- True decode with MTP0 and one sequence means every scored token ran the M1 direct path, where RP2 is active.
+  Every position, including the KV entries it writes, is computed by decode steps.
+- In serving, the prompt is prefilled by the unchanged prefill kernels. The prompt's hidden states and KV entries
+  therefore carry control numerics, and only generated tokens use RP2. The served-model effect is expected to be
+  smaller than the true-decode effect measured here. This was not measured.
+- In serving, RP2 covers the direct kernels only (M <= 16 tokens per step). Examples:
+  - with MTP3, one sequence verifies 4 tokens per step and 4 sequences verify 16, so both stay on the direct path;
+  - 5 or more concurrent sequences with MTP3 (20+ tokens per step), and all prompt prefill, use the grouped and
+    prefill kernels, which are unchanged (`p8_native_kernel.py`: `small_m = m <= 16` on the full-coupled path).
+- FP8 MLA KV throughout. NVFP4-KV production numbers are in Amendments 4-5.
+
+**Speed (descriptive, preregistered as such).**
+- Setup: the rp2-fp8 production-config server on :8038 (MTP3, TP4/DCP4, FP8 MLA KV), started 00:24:23.
+- Each cell is one run of `llm_decode_bench.py --skip-prefill --duration 30`, with the cooling gate before it
+  (>= 90 s idle, all GPUs <= 55 C for 30 s).
+- tok/s (MTP acceptance):
+
+| cell | control NVFP4 (w1) | rp NVFP4 (w1) | rp FP8 (w2) | rp2 FP8 (w3) |
+|---|---|---|---|---|
+| 0K, C1 | 184.3 (0.436) | 191.1 (0.553) | 193.0 (0.528) | 196.4 (0.446) |
+| 0K, C4 | 300.1 (0.550) | 301.2 (0.554) | 293.8 (0.589) | 297.9 (0.503) |
+| 8K, C1 | 184.1 (0.538) | 193.9 (0.610) | 193.4 (0.487) | 200.7 (0.531) |
+| 8K, C4 | 300.7 (0.669) | 299.0 (0.656) | 304.0 (0.613) | 312.7 (0.608) |
+
+- These are single unpaired runs from three different windows, with no intervals. MTP acceptance varies between runs
+  and moves C1 speed by several percent.
+- The table shows no end-to-end slowdown from RP2. It cannot rank the arms.
+- KV capacity in this serving profile with FP8 KV is 8,127,659 tokens, against 12.58M with NVFP4 KV (window 2).
+
+**Close.** Production was restored via `systemctl --user start trellismx-klc.service`. It reported healthy at
+00:42:03, with `/health` 200 and `/v1/models` serving `glm53-flash-trellismx-p8-k45`. Downtime was 21:25:35 to 00:42:03.

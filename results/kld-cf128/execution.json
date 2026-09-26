@@ -1,0 +1,10 @@
+{
+  "status": "starting",
+  "started": 1790385902.2498426,
+  "order": [
+    "control-fp8",
+    "rp2-fp8",
+    "tr3-fp8",
+    "speed-rp2-fp8"
+  ]
+}

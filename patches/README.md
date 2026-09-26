@@ -56,7 +56,7 @@ Neither measured tree changed during the runs that used it:
 - **`b12x-dx2`** was built once, before either production window. Both the `rp` (NVFP4 KV)
   and `rp-fp8` (FP8 KV) arms mounted it unchanged.
 - **`b12x-dx2rp2`** was built once, before the RP2 smoke test and the K4 and A4 runs, and has
-  not changed since. The Amendment 7 `rp2-fp8` arm mounts the same tree.
+  not changed since. The Amendment 7 `rp2-fp8` arm mounted the same tree.
 
 ## Gating
 

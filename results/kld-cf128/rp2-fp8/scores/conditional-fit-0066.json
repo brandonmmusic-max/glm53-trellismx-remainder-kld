@@ -1,0 +1,15 @@
+{
+  "window_id": "conditional-fit-0066",
+  "domain": "axis3_code_agentic",
+  "prediction_rows": 2047,
+  "true_decode_rows": 2046,
+  "true_decode_mean_kld": 0.035670298006365606,
+  "including_prefill_mean_kld": 0.035652872360051144,
+  "prefill_row_kld": 6.736766602780347e-13,
+  "raw_sha256": "b0d449a2391281526959ab20b528fd44a81c1d99438220f128bb6ede29487e45",
+  "score_sha256": "5e60eb8992171b373810fc2ee88fc25c4ba098b995ed1639af149b71ac5dd301",
+  "teacher_sha256": "925839fe5a9bcc645c0615277ccfb4d0a4ec3897b7ea19804ea6abec5853ba50",
+  "token_sha256": "fea80ae4f781455abc4769b7227e7846bc0348cbbcaab45fa40925c0928d9657",
+  "raw_retirement": "after durable score and verified raw hash",
+  "raw_bytes": 1268157440
+}
