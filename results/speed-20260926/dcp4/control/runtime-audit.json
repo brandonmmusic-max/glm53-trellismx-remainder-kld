@@ -1,0 +1,8 @@
+{
+  "rp2_markers": 0,
+  "epi_par_markers": 0,
+  "kv_dtype_ok": true,
+  "kv_cache_size": [
+    "12,575,163 tokens, Maximum concurrency for 1,000,000 tokens per request: 12.58x"
+  ]
+}

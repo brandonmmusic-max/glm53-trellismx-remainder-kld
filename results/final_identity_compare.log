@@ -1,0 +1,90 @@
+P8_EPI_PAR_ACTIVE layer=3 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=3 rank=0 input_hop=1
+P8_EPI_PAR_ACTIVE layer=3 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=3 rank=0 input_hop=1
+{"cell": "L3_R0_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R0_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R0_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R0_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R0_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R0_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R0_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=3 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=3 rank=3 input_hop=1
+P8_EPI_PAR_ACTIVE layer=3 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=3 rank=3 input_hop=1
+{"cell": "L3_R3_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R3_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R3_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R3_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R3_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R3_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L3_R3_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=8 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=8 rank=0 input_hop=1
+P8_EPI_PAR_ACTIVE layer=8 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=8 rank=0 input_hop=1
+{"cell": "L8_R0_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R0_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R0_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R0_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R0_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R0_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R0_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=8 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=8 rank=3 input_hop=1
+P8_EPI_PAR_ACTIVE layer=8 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=8 rank=3 input_hop=1
+{"cell": "L8_R3_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R3_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R3_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R3_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R3_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R3_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L8_R3_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=23 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=23 rank=0 input_hop=1
+P8_EPI_PAR_ACTIVE layer=23 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=23 rank=0 input_hop=1
+{"cell": "L23_R0_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R0_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R0_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R0_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R0_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R0_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R0_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=23 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=23 rank=3 input_hop=1
+P8_EPI_PAR_ACTIVE layer=23 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=23 rank=3 input_hop=1
+{"cell": "L23_R3_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R3_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R3_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R3_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R3_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R3_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L23_R3_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=43 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=43 rank=0 input_hop=1
+P8_EPI_PAR_ACTIVE layer=43 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=43 rank=0 input_hop=1
+{"cell": "L43_R0_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R0_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R0_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R0_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R0_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R0_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R0_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+P8_EPI_PAR_ACTIVE layer=43 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=43 rank=3 input_hop=1
+P8_EPI_PAR_ACTIVE layer=43 rank=3
+P8_DX2_ROWPACK_ACTIVE layer=43 rank=3 input_hop=1
+{"cell": "L43_R3_M1_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R3_M1_S1", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R3_M1_S2", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R3_M1_S3", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R3_M4_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R3_M16_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": true, "pass": true}
+{"cell": "L43_R3_M64_S0", "final_eq_measured_rp2": true, "rp2_eq_measured_rp2": true, "prod_eq_measured_prod": true, "prodpar_eq_measured_prod": true, "rp2_differs_from_prod": false, "pass": true}
+{"status": "PASS", "cells": 56}
+exit 0

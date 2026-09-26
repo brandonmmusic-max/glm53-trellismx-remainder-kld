@@ -2,18 +2,22 @@
 
 Brandon M. Music, September 2026
 
-**Status: complete (2026-09-26). Corrected after an independent audit the same day (section 6).**
+**Status: complete (2026-09-26). Corrected after an independent audit the same day (section 6).
+The RP2 kernels were then released in a public image (section 7).**
 
 This repository is the full record of one preregistered study:
 - the preregistration, its seven amendments and a chronology of when each was committed
   (`PREREG.md`);
 - the results log, written as results came in (`RESULTS.md`);
-- every script that produced a number (`scripts/`);
+- every script that produced a number (`scripts/`; the release speed harnesses sit next to their
+  results in `results/speed-20260926/`);
 - the raw and analysed result files (`results/`);
-- the kernel patches (`patches/`).
+- the kernel patches (`patches/`);
+- the deployment files and image record of the RP2 release image (`deploy/`).
 
 This README explains what was tested, why, how, and what came out, including every test that
-failed.
+failed. In sections 1-6, "production" means the serving configuration during the study: the r27
+reference image with NVFP4 KV.
 
 ## Summary
 
@@ -60,10 +64,18 @@ The findings, in the order the tests ran:
      preregistered primary.
    - The earlier 32-window checks of the down-hop-only RP were inconclusive: -5.6% with NVFP4 KV
      and -0.8% with FP8 KV, and both intervals crossed 0.
+8. **Release, after the study.** The RP2 kernels ship in a public image with FP8 KV as the
+   default, together with the host-side guards and EPI-PAR, a parallel version of the M1 epilogue
+   (exploratory, section 4.10).
+   - A pre-flight check found the image's kernels bit-identical to the measured ones in 56 of 56
+     cells.
+   - In same-window single-run A/Bs against the r27 reference configuration (NVFP4 KV), the
+     release configuration was -2.0% to +12.0% in decode and +5.7% to +7.5% in prefill. These
+     runs cannot separate the kernels from the KV cache or from MTP acceptance (section 7).
 
 **Scope.**
-- **KV cache.** RP2 was measured only with FP8 KV. Production uses NVFP4 KV, and RP2 was never run
-  with it.
+- **KV cache.** RP2 was KL-measured only with FP8 KV. Production used NVFP4 KV during the study,
+  and RP2 was never run with it.
 - **Kernel paths.** RP and RP2 change only the direct decode kernels. Dispatch is by tokens per
   step: steps with M <= 16 tokens use them.
   - The KL measurement pushes every token through those kernels.
@@ -85,6 +97,8 @@ The findings, in the order the tests ran:
 | End-to-end KLD, FP8 MLA KV, 32 windows | Amendment 5 | control-fp8 0.0311958 vs rp-fp8 0.0309337: -0.84%, [-0.001146, +0.001246]: **no detectable change**. Cross-run, reported only: FP8 vs NVFP4 KV for the control -10.9% [-0.00898, -0.00171]. |
 | Remainder packed at both hops (D-x2-RP2) | K4 / A4 | Closure PASS. Timing PASS: median ratio <= 1.0273 at M1 and M4. |
 | **Final: 128 windows, FP8 MLA KV** | Amendment 7 | rp2 - control **-4.9% [-7.3%, -1.8%]**, lower in 105/128: **improvement**. rp2 - TR3 **+8.3% [+2.0%, +14.5%]**: RP2 above TR3, equivalence within +/-5% or +/-10% not established; with equal domain weights +6.1% [-0.2%, +12.5%]. |
+| Parallel M1 epilogue for RP2 (EPI-PAR; exploratory, not preregistered) | EPI-PAR check | Identity PASS, 28/28 rows in both builds. M1-only build: rp2+EPI-PAR/rp2 0.9693 (layer 8) and 0.9726 (layer 3). |
+| Do the release image's kernels reproduce the measured ones? | Release pre-flight | 56/56 cells bit-identical. |
 
 ## 1. What was tested, and why
 
@@ -178,7 +192,8 @@ thread holds the same output columns for rows q and q+8.
 - the FC1 epilogue folds the row q+8 accumulators into row q.
 
 Neither variant adds an MMA, a staging pass or a second data plane. Steps with M > 16 keep the
-production single-term kernels, so both variants act on decode steps only.
+production single-term kernels, so both variants act only on steps with at most 16 tokens. In
+serving, those are mostly decode steps.
 
 **Supported configuration.** The design relies on three settings, all of which the measured runs
 used:
@@ -368,7 +383,8 @@ that reads it, and there is no reason to spend a production window on it.
 - Reusing the published protocol makes our controls comparable with the published 09-09 values.
 
 **Consequence.** Every position, including the KV entries it writes, is computed by M1 decode
-steps. In serving, the prompt is prefilled by unchanged kernels (section 5).
+steps. In serving, prompt-prefill steps with more than 16 tokens use the unchanged kernels
+(section 5).
 
 ### 3.8 KL divergence in FP64 over the full vocabulary
 
@@ -432,7 +448,7 @@ confirmation and final.
 - The published 09-09 values show the same direction for TR3: 0.0281899 with FP8 KV, against
   0.03048 with NVFP4 KV.
 - The final comparison is therefore made at each system's better cache. The cost is that RP2 was
-  never measured with the NVFP4 KV that production uses.
+  never measured with the NVFP4 KV that production used during the study.
 
 ### 3.12 Fixed arm order, and what repeat runs show
 
@@ -469,6 +485,9 @@ on the original 32 windows (paired BCa95, relative to the earlier run; `reported
 | Test C random-sign arm | fixed random signs | n/a | 20260923 |
 | End-to-end KLD, including cross-run comparisons and repeats | `scipy.stats.bootstrap`, BCa, over window-paired differences; relative intervals scaled by the comparator's observed mean | 20,000 | 20260902 |
 | Audit sensitivities: domain-balanced (stratified), cluster bootstrap, gap fraction | percentile bootstrap over windows or clusters | 20,000 | 20260902 |
+| Audit sensitivities: Bonferroni-adjusted primaries (97.5%), ratio of means | `scipy.stats.bootstrap`, BCa, over window-paired values | 20,000 | 20260902 |
+| EPI-PAR timing (exploratory) | median of per-block ratios per input set, then the median over sets; no interval | n/a | n/a |
+| Release speed A/Bs | single runs; no interval | n/a | n/a |
 
 ### 3.14 Model, checkpoint, runtime and hardware
 
@@ -477,11 +496,11 @@ on the original 32 windows (paired BCa95, relative to the earlier run; `reported
 - **Checkpoint.** TrellisMX r27 (`brandonmusic/GLM-5.3-Flash-TrellisMX-MXFP8`): per-rank trellis
   sidecars for the routed experts, four tensor-parallel ranks per layer, overlaid on the NVFP4
   carrier `local-inference-lab/GLM-5.3-Flash-NVFP4`.
-- **Runtime.** Serving image `verdictai/trellismx@sha256:ca6b8018...` (full digest in section 7).
+- **Runtime.** Serving image `verdictai/trellismx@sha256:ca6b8018...` (full digest in section 8.1).
   It is vLLM-based, and the server reports
   `0.26.1rc0+glm53.flash.nvfp4.luke.clean.r1.vllme75bcfd.b12x58a046f`. Every patched arm
   bind-mounts a patched b12x tree over `/opt/glm53-flash/b12x`.
-- **Capture images.** The KL captures ran in capture-only images (section 7.1).
+- **Capture images.** The KL captures ran in capture-only images (section 8.1).
 - **Serving layout.**
   - Capture profile: TP4/DCP4 (tensor parallel 4, decode context parallel 4), MTP off, one
     sequence, 4096 batched tokens, GPU memory utilization 0.97, maximum length 1M.
@@ -839,12 +858,12 @@ noted).
 
 | Analysis | rp2 - control | rp2 - tr3 |
 |---|---|---|
-| Preregistered (BCa95) | -4.9% [-7.3%, -1.8%] | +8.3% [+2.0%, +14.5%] |
+| Preregistered (BCa95; `analysis.json`) | -4.9% [-7.3%, -1.8%] | +8.3% [+2.0%, +14.5%] |
 | Domain-balanced: four domains weighted equally, stratified bootstrap (percentile 95%) | -4.7% [-7.3%, -2.0%] | +6.1% [-0.2%, +12.5%] |
 | Cluster bootstrap, windows sharing >= 1 32-token span (81 clusters, largest 19) | [-7.4%, -1.9%] | [+2.0%, +16.2%] |
 | Cluster bootstrap, windows sharing >= 64 spans (110 clusters, largest 16) | [-7.7%, -2.1%] | [+1.7%, +15.8%] |
-| Bonferroni-adjusted 97.5% BCa (`RESULTS.md`) | [-7.59%, -1.22%] | [+1.08%, +15.31%] |
-| Ratio-of-means BCa (`RESULTS.md`) | [-7.20%, -1.80%] | [+1.87%, +14.57%] |
+| Bonferroni-adjusted 97.5% BCa | [-7.59%, -1.22%] | [+1.08%, +15.31%] |
+| Ratio-of-means BCa (paired, denominator resampled too) | [-7.20%, -1.80%] | [+1.87%, +14.57%] |
 
 - **Robustness.** RP2's advantage over the control holds under every analysis. Its gap to TR3
   holds under all of them except equal domain weights, where the interval includes 0.
@@ -873,15 +892,76 @@ Observed sustained-decode rates were similar in these single unpaired runs. The 
 the arms or resolve an end-to-end cost of 1-3%. The FP8 serving profile of the `rp2-fp8` speed
 server holds 8,127,659 tokens of KV cache.
 
+### 4.10 Exploratory, after Amendment 7: EPI-PAR (not preregistered)
+
+EPI-PAR is a speed change to the M1 FC1 epilogue that must leave every output bit-identical, with
+or without RP2. It was not preregistered and is not part of any KL measurement. It is reported
+here because the release image ships it (section 7).
+
+**Idea.** In the direct FC1 kernels, the down-input quantization runs one thread per row.
+- A direct tile holds one route, so a single thread walks the row's four blocks of 32 values one
+  after another. With RP or RP2 it also runs the lo pass for each block, while the rest of the
+  thread block waits at the closing barrier.
+- EPI-PAR (`scripts/build_rp2_epipar_b12x.py`, `patches/b12x-epipar-m1.diff`) gives each
+  (row, 32-block) pair its own thread.
+- The per-block code is the serial path's text with the thread index replaced by the row index.
+  The loads, the max order, the quantizer and the stores are the same.
+- FC1 and FC2 are separate kernel launches, so the extra writing threads need no new
+  synchronization.
+- It is switched on by `B12X_P8_EPI_PAR=1`, which is read when the MoE runtime is constructed and
+  joins the compile spec.
+
+**Check** (`scripts/epipar_check.py`, `scripts/run_epipar_check.sh`; GPU 1, next to the idle
+production server):
+- four arms: prod, prod + EPI-PAR, rp2, rp2 + EPI-PAR;
+- layers 8 (K4) and 3 (K5), with fit-capture routes; M1, M4 and M16 with 4 input sets each, plus
+  M64 and M512;
+- identity is gated first. Timing then runs 60 CUDA-graph blocks x 200 replays per arm, with the
+  arm order rotated every block.
+
+**Identity: PASS in both builds, 28/28 rows** (`results/epipar_check_both.json`,
+`results/epipar_check_k5.json`):
+- prod + EPI-PAR equals prod, and rp2 + EPI-PAR equals rp2, bit for bit (`torch.equal`) on every
+  M1, M4 and M16 input set;
+- M64 and M512 are identical across all four arms;
+- rp2 + EPI-PAR is deterministic.
+
+**Timing** (median over the 4 input sets of the per-set medians of per-block ratios; descriptive):
+
+| build | cell | rp2/prod | rp2+EPI-PAR/prod | rp2+EPI-PAR/rp2 |
+|---|---|---|---|---|
+| EPI-PAR in the M1 and M2-16 kernels | L8 M1 | 1.0317 | 1.0000 | 0.9693 |
+| | L3 M1 | 1.0602 | 1.0305 | 0.9715 |
+| | L8 M16 | 0.9763 | 1.0231 | **1.0479** (slower) |
+| | L3 M16 | 1.0015 | 1.0034 | 1.0018 |
+| EPI-PAR in the M1 kernel only (`EPIPAR_FILES=route_hoist_k5.py`) | L8 M1 | 1.0321 | 1.0004 | 0.9693 |
+| | L3 M1 | 1.0597 | 1.0312 | 0.9726 |
+| | L8 M4 | 1.0165 | 1.0118 | 0.9864 (identical code) |
+| | L3 M4 | 1.0345 | 1.0268 | 0.9811 (identical code) |
+| | L8 M16 | 0.9759 | 0.9768 | 1.0009 (identical code) |
+
+**Reading (exploratory).**
+- In the M1 kernel, EPI-PAR removed RP2's whole M1 cost on the K4 layer and about half of it on
+  the K5 layer, with identical outputs.
+- In the M2-16 kernel it made L8 M16 about 5% slower. The M1-only build was therefore kept, and it
+  is the one in the release image.
+- In the M1-only build, cells whose code is identical in both arms differ by up to 1.9%. That is
+  the noise floor of these cells.
+- This run measured RP2's own M1 cost at 1.032 (L8) and 1.060 (L3), above A4's 1.026 and 1.027.
+  The conditions differ: GPU 1 next to the resident production server here, and four interleaved
+  arms instead of two.
+- EPI-PAR's end-to-end effect was not measured on its own.
+
 ## 5. Limits and scope
 
-- **FP8 KV only.** RP2 was measured only with FP8 KV. Production uses NVFP4 KV, and RP2 was never run
-  with NVFP4 KV.
+- **FP8 KV only.** RP2 was KL-measured only with FP8 KV. Production used NVFP4 KV during the
+  study, and RP2 was never run with NVFP4 KV.
 - **Served effect.** The served effect is expected to be smaller than the measured one:
   - the true-decode protocol computes every position, including its KV entries, with M1 decode
     steps;
-  - in serving, the prompt is prefilled by the unchanged kernels, so the prompt's hidden states and
-    KV entries carry control numerics, and only generated tokens use RP2.
+  - in serving, dispatch is by tokens per step. Steps with at most 16 tokens run RP2, and
+    prompt-prefill steps with more than 16 tokens use the unchanged kernels, so most of a prompt's
+    hidden states and KV entries carry control numerics.
 
   The served-model effect was not measured.
 - **Direct kernels only.** RP and RP2 change only the direct kernels, which handle steps with
@@ -898,8 +978,9 @@ server holds 8,127,659 tokens of KV cache.
   - `fc1_warp_quant=False` for every remainder mode;
   - one route per direct tile.
 
-  Other settings could race or silently drop the remainder. Building with `DX2_GUARDS=1` adds
-  host-side checks that reject them. `results/rp2_guard_smoke.json` records that:
+  Other settings could race or silently drop the remainder. The builder now adds host-side
+  checks that reject them by default, and the release image has them; `DX2_GUARDS=0` builds the
+  measured tree without them. `results/rp2_guard_smoke.json` records that:
   - the measured configuration passes, with smoke numbers identical to the 09-25 run;
   - the four unsupported combinations tested are rejected.
 - **Server-level shifts.** Each arm got one server preparation.
@@ -937,8 +1018,9 @@ server holds 8,127,659 tokens of KV cache.
     layers (3 and 8).
   - The zero-remainder arm is a lower bound on a real remainder's cost.
   - Test A ran on a clock-pinned GPU (see 4.1).
-- **Speed is descriptive.** One run per cell. The runs cannot resolve an end-to-end cost of 1-3%,
-  and the MTP-acceptance differences between runs are not explained.
+- **Speed is descriptive.** One run per cell, here and in the release A/Bs of section 7. The runs
+  cannot resolve an end-to-end cost of 1-3%, and the MTP-acceptance differences between runs are
+  not explained.
 
 ## 6. Independent audit (2026-09-26)
 
@@ -981,8 +1063,8 @@ audited by six independent reviews.
   - Per-arm capture images from each arm's `launch.json`, with the misleading `capture_image_id`
     field flagged.
   - The start-state `execution.json` records of the first two windows.
-- **Kernel safety.** Opt-in host guards (`DX2_GUARDS=1`, `patches/b12x-dx2-guards.diff`) and a
-  guard smoke test. The default build still reproduces the measured trees byte for byte.
+- **Kernel safety.** Host-side guards (`patches/b12x-dx2-guards.diff`) and a guard smoke test.
+  They were first opt-in and are on by default since the third round (below).
 - **Records added:**
   - the 09-25 smoke output;
   - the KV-mirror check rerun;
@@ -993,9 +1075,184 @@ audited by six independent reviews.
   - One rounding fix in `RESULTS.md`: the new-96 control - tr3 lower bound is +6.6%, not +6.7%.
   - The NVFP4 serving-capacity figure is attributed to the correct server.
 
-## 7. Reproduction
+**Third round (sign-off, on commit 4bfd853).** Five of the six reviews checked the corrected
+repository. Two signed off, and one returned no usable report. Two did not sign, pending the
+first four fixes below; the fifth answers a smaller note from the same round. This update makes
+all five, and it has not been re-reviewed:
+- **Wording.** `RESULTS.md` now marks the Test C "Why it fails" paragraph as a likely
+  explanation, not a demonstrated cause, and corrects its prefill wording in place. This README
+  states prefill coverage by tokens per step throughout.
+- **Attribution.** `scripts/reported_extras_cf128.py` now computes the Bonferroni and
+  ratio-of-means intervals it was credited with, and they are in `reported-extras.json`. The
+  interval description in section 9.2 now separates the preregistered BCa intervals from the
+  percentile-bootstrap sensitivity analyses.
+- **Guards by default.** The RP2 builder adds the host guards unless `DX2_GUARDS=0`, which
+  reproduces the measured trees byte for byte.
+- **Exit status.** `scripts/rp2_guard_smoke.py` exits nonzero when a check fails.
+- **Patch notes.** `patches/README.md` states which patches stack.
 
-### 7.1 Images
+## 7. RP2 release image (2026-09-26)
+
+After the study and the audit, the RP2 kernels were released as a public image. Nothing in this
+section is preregistered. The image deploys the measured configuration, a pre-flight check
+compares its kernels with the measured ones, and the speed A/Bs are descriptive single runs.
+
+### 7.1 The image
+
+`verdictai/trellismx:glm53-flash-p8-r27-rp2-20260926@sha256:a0392e1c370eb933d87511928ea3aba6d5d63965cfe6eeaf9cc026a667e98ddc`
+(Docker Hub)
+
+- **Contents.** The September 9 r27 reference image plus one layer (`deploy/Dockerfile`). The
+  layer replaces `/opt/glm53-flash/b12x` with the release b12x tree and adds the launcher
+  `serve-rp2.sh`.
+- **Kernel tree.** RP2, the host-side guards, and EPI-PAR in the M1 FC1 kernel (section 4.10).
+  The tree equals the image's b12x with `b12x-dx2-rowpack-rp2.diff`, `b12x-dx2-guards.diff` and
+  `b12x-epipar-m1.diff` applied in that order. `scripts/build_rp2_epipar_b12x.py` with
+  `EPIPAR_FILES=route_hoist_k5.py` builds the same tree (section 8.3).
+- **Defaults.** `B12X_P8_DOWN_REMAINDER=rp2`, `B12X_P8_EPI_PAR=1` and FP8 MLA KV
+  (`KV_CACHE_DTYPE=fp8`). FP8 KV is the default because the final KL result was measured with it.
+  Setting both B12X variables to empty runs the reference kernels from the same image.
+- **Requirements.** RP2 needs `GLM53_P8_FC1_BROADCAST_A=1` and `GLM53_P8_FC1_WARP_QUANT=0`, the
+  defaults. `serve-rp2.sh` and the kernel guards reject other settings, and the launcher accepts
+  only TP4/DCP4.
+- **Deployment files** (`deploy/`):
+  - `compose.yaml`, the serving profile: TP4/DCP4, MTP3, 48 sequences, 8,192 batched tokens,
+    GMU 0.88;
+  - `serve-rp2.sh` and the `Dockerfile`;
+  - `image-record-rp2-20260926.json`, the image record. Its sha256 values for the other three
+    files match the copies here.
+- **Relation to the measured arm.** The `rp2-fp8` arm of the final run used the `b12x-dx2rp2`
+  tree, without guards and without EPI-PAR.
+  - The guards are host-side checks and change no kernel code.
+  - EPI-PAR is designed to be bit-identical, and the pre-flight below found it so.
+  - The image's KL divergence was not measured again.
+- **Production.** Production switched to this image with FP8 KV at the end of the DCP4 speed
+  window below (`results/speed-20260926/dcp4/window.log`).
+
+### 7.2 Pre-flight: kernel identity, 56/56 cells
+
+Scripts `final_identity_check.py` and `run_final_identity.sh`; result
+`results/final_identity_check.json`.
+1. **Save.** The r27 reference image ran with the measured RP2 tree (`b12x-dx2rp2`) mounted. It
+   saved the prod (all flags off) and rp2 outputs for real fit-capture routes
+   (`final_identity_save.log`).
+2. **Compare.** The release image ran with its own b12x. Four arms were rebuilt and compared with
+   `torch.equal` (`final_identity_compare.log`):
+   - rp2 + EPI-PAR (the image default) and rp2, against the saved rp2 outputs;
+   - prod and prod + EPI-PAR, against the saved prod outputs.
+3. **Coverage.** Layers 3, 8, 23 and 43; TP ranks 0 and 3; M1 (4 input sets), M4, M16 and M64.
+   All 56 cells were bit-identical. RP2 differs from prod in the 48 cells with M <= 16 and matches
+   it at M64, as designed.
+
+- **What "prod" means here.** The saved prod outputs come from the measured tree with all flags
+  off. That this path equals the unpatched image's own kernels follows from the flag gating
+  (`patches/README.md`). It was checked directly only for the earlier D-x2 build (K2: M16 and
+  M3072).
+- **Which image.** The pre-flight ran on the release image by its tag on the build host, before
+  the push. The DCP4 speed window recorded the local id of the image it ran as
+  `sha256:a0392e1c...`, the pushed digest (`results/speed-20260926/dcp4/candidate/image.json`).
+
+### 7.3 Speed: two same-window A/Bs
+
+Both A/Bs compare the release configuration (RP2 image, FP8 KV) with the r27 reference
+configuration (reference image, NVFP4 KV).
+- Each arm got one fresh server and one run per cell, in a fixed order.
+- Values are tokens/s, aggregate over concurrent requests (C1 is one request, C8 is eight), with
+  MTP acceptance in parentheses.
+- `results/speed-20260926/speed-summary-20260926.json` collects both tables and their conditions.
+
+**DCP1, greedy fixed-input method.** TP4/DCP1, MTP3, 24 sequences, 4,096 batched tokens, GMU 0.97.
+Measured 2026-09-26, 12:31-13:04, RP2 arm first (`results/speed-20260926/dcp1/`).
+- **Decode.** `bench_fixed.py` runs the unchanged `llm_decode_bench.py` v0.4.29 with a fixed
+  run-ID prompt prefix and temperature 0. Exact token targeting, 20 s cells, at most 8,192
+  tokens.
+- **Prefill.** `llm_decode_bench.py --prefill-only`, cold, 20 s per context.
+- **Harness.** The first RP2 cell (C1 0K) ran under `run.py`, with the cooling gate described for
+  DCP4 below, and its log ends after that cell. The remaining cells of both arms ran with
+  `quick.sh`, which waits up to 60 s for the hottest GPU to reach 55 °C and then proceeds.
+- **Servers.** `serve-rp2.sh` accepts only DCP4, so both DCP1 servers started the image's own
+  serving script directly, with the settings above (`dcp1/rp2/launch.json`,
+  `dcp1/control-launch.json`).
+
+| cell | r27 reference, NVFP4 KV | RP2 image, FP8 KV | RP2 / reference |
+|---|---|---|---|
+| C1 decode, 0K | 198.9 (0.51) | 222.7 (0.59) | 1.120 |
+| C1 decode, 8K | 224.4 (0.55) | 229.4 (0.58) | 1.022 |
+| C1 decode, 32K | 218.0 (0.59) | 226.7 (0.52) | 1.040 |
+| C1 decode, 128K | 210.5 (0.57) | 210.1 (0.52) | 0.998 |
+| prefill, 8K | 8,613 | 9,255 | 1.075 |
+| prefill, 32K | 8,584 | 9,111 | 1.061 |
+| prefill, 128K | 8,199 | 8,709 | 1.062 |
+
+**DCP4, production serving profile, default sampling.** TP4/DCP4, MTP3, 48 sequences, 8,192
+batched tokens, GMU 0.88. Measured 2026-09-26, 05:28-06:42, reference arm first
+(`results/speed-20260926/dcp4/`).
+- **Decode.** `llm_decode_bench.py` v0.4.29 with the server's default sampling. 30 s cells, at
+  most 2,048 tokens.
+- **Prefill.** `--prefill-only`, cold, 20 s per context.
+- **Cooling gate** before every cell: at least 90 s idle, and all GPUs at or below 55 °C for 30 s.
+- **Values** are from `summary.json`, which `summarize.py` regenerates byte for byte from the raw
+  files.
+
+| cell | r27 reference, NVFP4 KV | RP2 image, FP8 KV | RP2 / reference |
+|---|---|---|---|
+| C8 decode, 0K | 581.5 (0.58) | 569.9 (0.50) | 0.980 |
+| C8 decode, 8K | 478.1 (0.62) | 499.3 (0.59) | 1.044 |
+| C8 decode, 16K | 469.7 (0.51) | 474.5 (0.65) | 1.010 |
+| C8 decode, 32K | 471.0 (0.63)* | 473.9 (0.60) | 1.006 |
+| C1 decode, 0K | 186.7 (0.60) | 195.0 (0.48) | 1.044 |
+| C1 decode, 8K | 188.7 (0.66) | 197.8 (0.57) | 1.049 |
+| C1 decode, 16K | 184.6 (0.47) | 190.3 (0.79) | 1.031 |
+| C1 decode, 32K | 185.3 (0.35) | 185.4 (0.40) | 1.001 |
+| C1 decode, 64K | 187.9 (0.53) | 193.0 (0.63) | 1.027 |
+| C1 decode, 128K | 181.9 (0.56) | 183.6 (0.65) | 1.009 |
+| prefill, 8K | 8,102 | 8,618 | 1.064 |
+| prefill, 16K | 8,265 | 8,732 | 1.057 |
+| prefill, 32K | 8,292 | 8,775 | 1.058 |
+| prefill, 64K | 8,219 | 8,716 | 1.060 |
+| prefill, 128K | 8,072 | 8,559 | 1.060 |
+
+\* The benchmark flagged this cell as underfilled: 7.8 requests running on average instead of 8.
+
+**Reading.**
+- **Three changes at once.** Each A/B changes the kernels (RP2 with EPI-PAR), the KV cache (FP8
+  against NVFP4) and the image layer together. It cannot attribute a difference to any one of
+  them.
+- **MTP acceptance moves decode speed.** With three draft tokens, a step emits on average 1 + 3a
+  tokens, where a is the acceptance rate. At equal step time, the DCP1 C1 0K acceptance difference
+  alone (0.506 against 0.590) predicts a 10.0% speed difference, most of the 12.0% observed.
+  Acceptance differs between the arms in every cell, in both directions.
+- **Prefill** was 5.7-7.5% faster in the release configuration, in every cell of both tables.
+  Prefill steps with more than 16 tokens run the unchanged MoE kernels, so this is consistent with
+  the FP8 KV cache. The runs did not isolate the cause.
+- **Do not mix the tables.** They differ in method (greedy fixed inputs against default sampling;
+  20 s against 30 s cells; at most 8,192 against 2,048 tokens), in DCP and scheduler profile, and
+  in GPU clock offsets (below). Sampling changes the generated text, and with it MTP acceptance.
+  The September 9 figures published with the r27 image used the greedy fixed-input method at 24
+  sequences, 4,096 batched tokens and GMU 0.97, with DCP4. In method they compare only with the
+  DCP1 table, which differs from them in DCP.
+- **Hardware.** Four RTX PRO 6000 Blackwell GPUs at a 300 W power limit each, with a +6000 memory
+  clock offset. GPU3, a 600 W-class card held to 300 W, runs at lower sustained clocks than its
+  twin, GPU1, under the same load and settings. Both DCP1 arms ran with a +150 MHz GPC clock
+  offset on GPU3 (`dcp1/run.log` and the conditions in `speed-summary-20260926.json`). The DCP4
+  window ran with no clock offsets.
+
+**KV capacity** (engine startup logs).
+- **Serving profile** (DCP4, GMU 0.88, 48 sequences): FP8 KV holds 8,127,659 tokens, against
+  12,581,699 with NVFP4 KV (-35%; section 4.7, `results/kv_capacity_serving_profile.json`). The
+  servers of the DCP4 A/B reported 8,141,843 and 12,575,163 (`runtime-audit.json`).
+- **DCP1** at GMU 0.97: the RP2 image with FP8 KV held 3,823,412 tokens (`dcp1/run.log`).
+- The 1,000,000-token request limit is unchanged. `KV_CACHE_DTYPE=nvfp4_ds_mla` gives more
+  capacity, but RP2 was never KL-measured with NVFP4 KV.
+
+**Behaviour check.** The DCP4 harness also tried three behaviour profiles. Those calls exited at
+once with status 2 and no output, because v0.4.29 has no `--reasoning-effort` option
+(`window.log`). A behaviour check (LAVD, Estonia and Hotel Lights, 10 runs each) is running
+separately. Its results will be added.
+
+## 8. Reproduction
+
+### 8.1 Images
 
 | Role | Identity |
 |---|---|
@@ -1003,14 +1260,16 @@ audited by six independent reviews.
 | Its base image, per the published image record | `voipmonitor/vllm:jovian-judgement-community-20260906-r27@sha256:a298fe1cd207eaf97bd2ff2686716ed25b7009c09b36650eba732a4a7dc51512` |
 | TrellisMX capture image: control and RP arms of all windows (local build, not published; the image of the published 09-09 measurement) | image id `sha256:0405a1c0dc128b51069798a5d00b346257bbd006c0deb7e6530a3d005d75de71` |
 | TR3 capture image: TR3 arm of the final run (local build, not published; the image of the published 09-09 TR3 comparison) | `local/tr3-r10:cf32-process-cache-20260909`, image id `sha256:62e069faf47f2d42eae5f2c1677f8730a2f3f93d576301fe1bcc7e55f2fdb673` |
+| RP2 release image (public; section 7), built from `deploy/Dockerfile` on the serving image | `verdictai/trellismx:glm53-flash-p8-r27-rp2-20260926@sha256:a0392e1c370eb933d87511928ea3aba6d5d63965cfe6eeaf9cc026a667e98ddc` |
 
 Each arm's docker argv is in `results/kld-cf128/<arm>/launch.json`, and the image digest for each
 arm is recorded there. The published 09-09 `comparison.json` files record both capture images and
-their provenance.
+their provenance. The release speed runs record theirs in the `launch.json` files under
+`results/speed-20260926/` and in `dcp1/control-launch.json` there.
 
-### 7.2 Inputs
+### 8.2 Inputs
 
-- **TrellisMX r27 checkpoint** at the revision in section 8. Its `trellismx-manifest.json` is
+- **TrellisMX r27 checkpoint** at the revision in section 9. Its `trellismx-manifest.json` is
   byte-identical to the one we ran, and the sidecar sha256 values in
   `results/testB/layer-003.json` and `layer-008.json` match the Hub files.
 - **NVFP4 carrier** at the pinned revision.
@@ -1033,13 +1292,16 @@ their provenance.
 Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-volume>`,
 `<model-volume>`); see `scripts/README.md`.
 
-### 7.3 Commands
+### 8.3 Commands
 
 1. **Kernel trees.** Apply `patches/*.diff` to the image's b12x, or run the builders:
    - `scripts/build_zero_remainder_b12x.py`
    - `scripts/build_dx2_b12x.py`
-   - `DX2_DST=<scratch dir> scripts/build_dx2_rp2_b12x.py`. Add `DX2_GUARDS=1` for the opt-in host
-     guards; without it the output is byte-identical to the measured tree.
+   - `DX2_DST=<scratch dir> scripts/build_dx2_rp2_b12x.py`. The host guards are on by default;
+     with `DX2_GUARDS=0` the output is byte-identical to the measured `b12x-dx2rp2` tree.
+   - `EPIPAR_FILES=route_hoist_k5.py EPIPAR_DST=<scratch dir> scripts/build_rp2_epipar_b12x.py`
+     for the release tree. The EPI-PAR check trees were built with `DX2_GUARDS=0`: without
+     `EPIPAR_FILES` for the M1 and M2-16 build, and with it for the M1-only build.
 2. **Test A.** `scripts/run_timing.sh`, then `python3 scripts/analyze_timing.py`.
 3. **Tests B and C.**
    - `scripts/fetch_fit_capture.py <layers>`
@@ -1059,7 +1321,7 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
    - then `python3 scripts/analyze_B2_A2.py` and `python3 scripts/summarize_rowpack_timing.py`.
 6. **B2.** `scripts/run_testB2.py`, then `python3 scripts/analyze_B2_A2.py`.
 7. **RP2 smoke and guards.** `scripts/run_rp2_smoke.sh` and `scripts/run_rp2_guard_smoke.sh`. The
-   guard run needs a tree built with `DX2_GUARDS=1`.
+   guard run needs a guarded tree, which is the builder's default.
 8. **End-to-end windows.**
    - The window scripts are `scripts/window_nvfp4_20260925.py`, `scripts/window_fp8_20260925.py`
      and `scripts/window_cf128_20260925.py`.
@@ -1068,8 +1330,15 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
      run, the TR3 attempt-2 launch.
    - They also operate our production host (systemd user unit, locks, ports). Treat them as a
      record of the procedure and adapt them before use.
+9. **EPI-PAR check and release pre-flight.**
+   - `B12X_TREE=<check tree> EP_OUT=/work/results/<name>.json scripts/run_epipar_check.sh`.
+   - `MODE=save scripts/run_final_identity.sh`, then `MODE=compare scripts/run_final_identity.sh`
+     with the release image.
+10. **Release speed.** The harnesses are next to their results: `results/speed-20260926/dcp1/`
+    (`run.py`, `quick.sh`, `bench_fixed.py`) and `results/speed-20260926/dcp4/` (`window.py`). Like
+    the window scripts, they operate our host and are a record of the procedure.
 
-### 7.4 Re-deriving the reported numbers (no GPU)
+### 8.4 Re-deriving the reported numbers (no GPU)
 
 - **Timing and layer-level analyses.**
   - `analyze_timing.py`, `analyze_timing_split.py`, `analyze_BC.py` and `analyze_B2_A2.py`
@@ -1082,10 +1351,15 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
     audits and in `results/kv_capacity_serving_profile.json`.
   - It also rewrites that file, so run it on a copy.
 - **Extras.** `python3 scripts/reported_extras_cf128.py` runs from this layout. It reproduces every
-  field of `results/kld-cf128/reported-extras.json` except `window_dependence`, which needs the
-  local token arrays.
+  field of `results/kld-cf128/reported-extras.json`, including the Bonferroni and ratio-of-means
+  intervals (`primary_robustness`), except `window_dependence`, which needs the local token
+  arrays.
   - It also rewrites that file, so run it on a copy.
   - The published file is the workspace run, which includes `window_dependence`.
+- **Release speed.** `python3 results/speed-20260926/dcp4/summarize.py` regenerates
+  `summary.json` byte for byte from the raw files next to it; run it on a copy. The DCP1 values
+  are `aggregate_tps` and `server_spec_accept_rate` of each `decode-*-c1.json`, and
+  `tok_per_sec` of each `prefill-quick.json`.
 - **KL divergence.** Every production window includes three kinds of score record:
   - `scores/*.json`, the per-window records. Each window's `true_decode_mean_kld` is the mean of
     `kld[1:]` in the matching `.npz`.
@@ -1096,12 +1370,13 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
   window-paired values. The cross-run comparisons use the same estimator against the 09-09
   `comparison.json` files, which are included in `results/reference-20260909/`.
 
-**Not included:** `.pt` tensors; raw logits, which were retired after hashing and scoring;
-request/response captures; server and startup logs; telemetry; clock CSVs.
+**Not included:** `.pt` tensors, including the pre-flight's saved outputs; raw logits, which were
+retired after hashing and scoring; request/response captures; server and startup logs;
+telemetry; clock CSVs.
 
-## 8. Sources
+## 9. Sources
 
-### 8.1 Models, data, code and images used
+### 9.1 Models, data, code and images used
 
 1. **Base model.** `zai-org/GLM-5.3-Flash-BF16`, revision
    `a6c167b62691b2bac901344b65cb651a70f53e43` (https://huggingface.co/zai-org/GLM-5.3-Flash-BF16).
@@ -1140,8 +1415,10 @@ request/response captures; server and startup logs; telemetry; clock CSVs.
    - Its `results/P8_COUPLED_INCOHERENCE_ARCHIVE_AUDIT.md` holds the published 09-04 screen value
      that Test B reproduces.
 7. **Serving image.** `verdictai/trellismx:glm53-flash-p8-r27-reference-20260909` (digest in
-   section 7.1). Every kernel test and every TrellisMX production arm ran in it or in its capture
-   derivative. The TR3 arm used its own capture image (section 7.1).
+   section 8.1). Every kernel test and every TrellisMX production arm ran in it or in its capture
+   derivative, except the compare step of the release pre-flight, which ran in the release image.
+   The TR3 arm used its own capture image (section 8.1). The serving image is also the base of the
+   RP2 release image and the reference arm of the release speed A/Bs (section 7).
 8. **b12x.** Luke Alonso and contributors, https://github.com/local-inference-lab/b12x (the
    earlier https://github.com/lukealonso/b12x redirects there). Apache License 2.0.
    - The P8 kernels and the patched files come from it.
@@ -1152,9 +1429,10 @@ request/response captures; server and startup logs; telemetry; clock CSVs.
    https://github.com/local-inference-lab/llm-inference-bench (the script's own update URL). The
    sha256 of the copy we ran is
    `7239958032ec10781d7db3efca23a7602bd9aeb94455a723e2634ab7d6fe546a`. It produced every speed
-   number.
+   number. The DCP1 release decode cells ran it through the fixed-input wrapper
+   `results/speed-20260926/dcp1/bench_fixed.py`, which checks that sha256 before it runs.
 
-### 8.2 Background
+### 9.2 Background
 
 - **QTIP.** Tseng, A., Sun, Q., Hou, D., and De Sa, C. "QTIP: Quantization with Trellises and
   Incoherence Processing." NeurIPS 2024. arXiv:2406.11235. Cited as the origin of the trellis
@@ -1177,13 +1455,14 @@ request/response captures; server and startup logs; telemetry; clock CSVs.
 - **KL divergence.** Kullback, S., and Leibler, R. A. "On Information and Sufficiency." Annals of
   Mathematical Statistics 22(1), 1951. Cited because it defines the primary metric.
 - **BCa intervals.** Efron, B. "Better Bootstrap Confidence Intervals." Journal of the American
-  Statistical Association 82(397), 1987. Cited because every KL interval is a BCa interval.
+  Statistical Association 82(397), 1987. Cited because the preregistered KL intervals are BCa
+  intervals. The sensitivity analyses use percentile bootstraps where stated (section 3.13).
 - **SciPy.** `scipy.stats.bootstrap` (`method="BCa"`). Cited because it computes the KL intervals.
 - **Preregistration.** Nosek, B. A., Ebersole, C. R., DeHaven, A. C., and Mellor, D. T. "The
   preregistration revolution." PNAS 115(11), 2018. Cited for the practice this study follows: a
   plan and decision rules fixed before the data, with amendments stated openly.
 
-## 9. License
+## 10. License
 
 This repository's own scripts, documentation and result files are distributed under the ShapleyMCG
 License 1.0 (`LICENSE`), the same license as the campaign repository. It is source-available, not
@@ -1194,10 +1473,11 @@ OSI open source. Required attribution:
 
 The b12x kernel patches in `patches/` modify Apache-2.0 b12x sources and are provided under the
 Apache License 2.0 (`patches/LICENSE.b12x`). The files in `results/reference-20260909/` are copies
-of files published with the TrellisMX model. Third-party models, datasets, images and libraries
-keep their own licenses.
+of files published with the TrellisMX model. The files in `deploy/` are this repository's own and
+fall under the ShapleyMCG License; the image they describe contains third-party software under its
+own licenses. Third-party models, datasets, images and libraries keep their own licenses.
 
-## 10. Repository layout
+## 11. Repository layout
 
 ```
 README.md                 this document
@@ -1205,7 +1485,8 @@ PREREG.md                 preregistration, Amendments 1-7 and the commit chronol
 RESULTS.md                results log, written as results came in, with the audit corrections
 LICENSE                   ShapleyMCG License 1.0
 scripts/                  every script that produced a number (see scripts/README.md)
-patches/                  b12x kernel diffs, the opt-in guards diff, and their Apache-2.0 license
+patches/                  b12x kernel diffs and their Apache-2.0 license
+deploy/                   RP2 release image: compose.yaml, serve-rp2.sh, Dockerfile, image record
 results/
   timing_raw.json, timing_analysis.json                Test A
   timing_split_raw.json, timing_split_analysis.json    Test A exploratory split
@@ -1230,8 +1511,17 @@ results/
     control-fp8/, rp2-fp8/, tr3-fp8/                     launch argv, runtime audits, per-window scores
     speed/rp2-fp8/                                       benchmark outputs and launch arguments
     window.log, execution*.json, restoration.json        window log, execution and restoration records
+  epipar_check_*.json, epipar_check_*.log              EPI-PAR identity and timing (section 4.10)
+  final_identity_check.json, final_identity_*.log      release pre-flight (section 7.2)
+  speed-20260926/                                      release speed A/Bs (section 7.3):
+    speed-summary-20260926.json                          both tables and their conditions
+    dcp1/                                                DCP1 A/B: outputs, launch argv, harness
+    dcp4/                                                DCP4 A/B: outputs, audits, summary, harness
 ```
 
 `RESULTS.md` and `PREREG.md` name files by their paths in the testing workspace:
 - `kld-*/...` there is `results/kld-*/...` here;
 - `results/b12x-dx2-guards.diff` is `patches/b12x-dx2-guards.diff`.
+
+The release speed harnesses name the workspace directories: `dcp1-speed-20260926/` there is
+`results/speed-20260926/dcp1/` here, and `bench-20260926/` is `results/speed-20260926/dcp4/`.

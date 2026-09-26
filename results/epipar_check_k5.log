@@ -1,0 +1,63 @@
+P8_EPI_PAR_ACTIVE layer=8 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=8 rank=0 input_hop=1
+P8_EPI_PAR_ACTIVE layer=8 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=8 rank=0 input_hop=1
+{"layer": 8, "m": 1, "set": 0, "start_row": 14400, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 1, "set": 1, "start_row": 129185, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 1, "set": 2, "start_row": 352514, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 1, "set": 3, "start_row": 616803, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 4, "set": 0, "start_row": 38976, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 4, "set": 1, "start_row": 190625, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 4, "set": 2, "start_row": 403714, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 4, "set": 3, "start_row": 678243, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 16, "set": 0, "start_row": 112704, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 16, "set": 1, "start_row": 319649, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 16, "set": 2, "start_row": 563458, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 16, "set": 3, "start_row": 31075, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 8, "m": 64, "set": 0, "start_row": 30817, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": true, "finite": true, "pass": true}
+{"layer": 8, "m": 512, "set": 0, "start_row": 30817, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": true, "finite": true, "pass": true}
+{"layer": 8, "m": 1, "set": 0, "start_row": 14400, "median_us": {"prod": 63.477, "prodpar": 62.862, "rp2": 65.515, "rp2par": 63.507}, "median_ratio": {"rp2_over_prod": 1.0322, "rp2par_over_prod": 1.0005, "prodpar_over_prod": 0.9903, "rp2par_over_rp2": 0.9694}}
+{"layer": 8, "m": 1, "set": 1, "start_row": 129185, "median_us": {"prod": 63.483, "prodpar": 62.905, "rp2": 65.515, "rp2par": 63.486}, "median_ratio": {"rp2_over_prod": 1.0321, "rp2par_over_prod": 1.0, "prodpar_over_prod": 0.991, "rp2par_over_rp2": 0.9689}}
+{"layer": 8, "m": 1, "set": 2, "start_row": 352514, "median_us": {"prod": 63.484, "prodpar": 62.565, "rp2": 65.515, "rp2par": 63.51}, "median_ratio": {"rp2_over_prod": 1.0321, "rp2par_over_prod": 1.0005, "prodpar_over_prod": 0.9855, "rp2par_over_rp2": 0.9694}}
+{"layer": 8, "m": 1, "set": 3, "start_row": 616803, "median_us": {"prod": 63.487, "prodpar": 62.439, "rp2": 65.514, "rp2par": 63.496}, "median_ratio": {"rp2_over_prod": 1.0319, "rp2par_over_prod": 1.0002, "prodpar_over_prod": 0.9836, "rp2par_over_rp2": 0.9692}}
+{"layer": 8, "m": 4, "set": 0, "start_row": 38976, "median_us": {"prod": 106.455, "prodpar": 113.311, "rp2": 111.483, "rp2par": 107.293}, "median_ratio": {"rp2_over_prod": 1.0468, "rp2par_over_prod": 1.0076, "prodpar_over_prod": 1.064, "rp2par_over_rp2": 0.9627}}
+{"layer": 8, "m": 4, "set": 1, "start_row": 190625, "median_us": {"prod": 106.037, "prodpar": 105.943, "rp2": 107.619, "rp2par": 107.735}, "median_ratio": {"rp2_over_prod": 1.0149, "rp2par_over_prod": 1.016, "prodpar_over_prod": 0.9992, "rp2par_over_rp2": 1.0011}}
+{"layer": 8, "m": 4, "set": 2, "start_row": 403714, "median_us": {"prod": 106.221, "prodpar": 106.123, "rp2": 108.182, "rp2par": 112.66}, "median_ratio": {"rp2_over_prod": 1.0181, "rp2par_over_prod": 1.0604, "prodpar_over_prod": 0.9989, "rp2par_over_rp2": 1.0415}}
+{"layer": 8, "m": 4, "set": 3, "start_row": 678243, "median_us": {"prod": 115.749, "prodpar": 114.537, "rp2": 111.815, "rp2par": 108.661}, "median_ratio": {"rp2_over_prod": 0.9661, "rp2par_over_prod": 0.9387, "prodpar_over_prod": 0.9897, "rp2par_over_rp2": 0.9716}}
+{"layer": 8, "m": 16, "set": 0, "start_row": 112704, "median_us": {"prod": 486.172, "prodpar": 487.115, "rp2": 472.42, "rp2par": 472.77}, "median_ratio": {"rp2_over_prod": 0.9716, "rp2par_over_prod": 0.9725, "prodpar_over_prod": 1.0018, "rp2par_over_rp2": 1.0009}}
+{"layer": 8, "m": 16, "set": 1, "start_row": 319649, "median_us": {"prod": 507.237, "prodpar": 509.807, "rp2": 495.55, "rp2par": 494.656}, "median_ratio": {"rp2_over_prod": 0.976, "rp2par_over_prod": 0.9749, "prodpar_over_prod": 1.0045, "rp2par_over_rp2": 0.9987}}
+{"layer": 8, "m": 16, "set": 2, "start_row": 563458, "median_us": {"prod": 481.044, "prodpar": 483.698, "rp2": 469.074, "rp2par": 470.559}, "median_ratio": {"rp2_over_prod": 0.9759, "rp2par_over_prod": 0.9786, "prodpar_over_prod": 1.0061, "rp2par_over_rp2": 1.0027}}
+{"layer": 8, "m": 16, "set": 3, "start_row": 31075, "median_us": {"prod": 506.092, "prodpar": 507.602, "rp2": 494.92, "rp2par": 495.172}, "median_ratio": {"rp2_over_prod": 0.9777, "rp2par_over_prod": 0.9786, "prodpar_over_prod": 1.0032, "rp2par_over_rp2": 1.0009}}
+P8_EPI_PAR_ACTIVE layer=3 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=3 rank=0 input_hop=1
+P8_EPI_PAR_ACTIVE layer=3 rank=0
+P8_DX2_ROWPACK_ACTIVE layer=3 rank=0 input_hop=1
+{"layer": 3, "m": 1, "set": 0, "start_row": 14400, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 1, "set": 1, "start_row": 129185, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 1, "set": 2, "start_row": 352514, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 1, "set": 3, "start_row": 616803, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 4, "set": 0, "start_row": 38976, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 4, "set": 1, "start_row": 190625, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 4, "set": 2, "start_row": 403714, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 4, "set": 3, "start_row": 678243, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 16, "set": 0, "start_row": 112704, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 16, "set": 1, "start_row": 319649, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 16, "set": 2, "start_row": 563458, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 16, "set": 3, "start_row": 31075, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": false, "finite": true, "pass": true}
+{"layer": 3, "m": 64, "set": 0, "start_row": 30817, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": true, "finite": true, "pass": true}
+{"layer": 3, "m": 512, "set": 0, "start_row": 30817, "prodpar_eq_prod": true, "rp2par_eq_rp2": true, "rp2par_deterministic": true, "rp2_eq_prod": true, "finite": true, "pass": true}
+{"layer": 3, "m": 1, "set": 0, "start_row": 14400, "median_us": {"prod": 65.587, "prodpar": 65.625, "rp2": 69.628, "rp2par": 67.744}, "median_ratio": {"rp2_over_prod": 1.0616, "rp2par_over_prod": 1.0328, "prodpar_over_prod": 1.0005, "rp2par_over_rp2": 0.9729}}
+{"layer": 3, "m": 1, "set": 1, "start_row": 129185, "median_us": {"prod": 65.761, "prodpar": 65.896, "rp2": 69.61, "rp2par": 67.69}, "median_ratio": {"rp2_over_prod": 1.0586, "rp2par_over_prod": 1.0293, "prodpar_over_prod": 1.0021, "rp2par_over_rp2": 0.9722}}
+{"layer": 3, "m": 1, "set": 2, "start_row": 352514, "median_us": {"prod": 65.642, "prodpar": 66.306, "rp2": 69.631, "rp2par": 67.68}, "median_ratio": {"rp2_over_prod": 1.0609, "rp2par_over_prod": 1.0311, "prodpar_over_prod": 1.0102, "rp2par_over_rp2": 0.9719}}
+{"layer": 3, "m": 1, "set": 3, "start_row": 616803, "median_us": {"prod": 65.576, "prodpar": 65.576, "rp2": 67.645, "rp2par": 67.624}, "median_ratio": {"rp2_over_prod": 1.0316, "rp2par_over_prod": 1.0313, "prodpar_over_prod": 1.0, "rp2par_over_rp2": 0.9997}}
+{"layer": 3, "m": 4, "set": 0, "start_row": 38976, "median_us": {"prod": 136.825, "prodpar": 139.102, "rp2": 140.201, "rp2par": 142.884}, "median_ratio": {"rp2_over_prod": 1.0242, "rp2par_over_prod": 1.0442, "prodpar_over_prod": 1.0166, "rp2par_over_rp2": 1.0193}}
+{"layer": 3, "m": 4, "set": 1, "start_row": 190625, "median_us": {"prod": 148.79, "prodpar": 151.354, "rp2": 155.141, "rp2par": 149.883}, "median_ratio": {"rp2_over_prod": 1.0427, "rp2par_over_prod": 1.0073, "prodpar_over_prod": 1.0171, "rp2par_over_rp2": 0.966}}
+{"layer": 3, "m": 4, "set": 2, "start_row": 403714, "median_us": {"prod": 138.829, "prodpar": 144.363, "rp2": 151.399, "rp2par": 143.159}, "median_ratio": {"rp2_over_prod": 1.0909, "rp2par_over_prod": 1.0312, "prodpar_over_prod": 1.0401, "rp2par_over_rp2": 0.9452}}
+{"layer": 3, "m": 4, "set": 3, "start_row": 678243, "median_us": {"prod": 141.521, "prodpar": 140.594, "rp2": 145.2, "rp2par": 144.697}, "median_ratio": {"rp2_over_prod": 1.0264, "rp2par_over_prod": 1.0224, "prodpar_over_prod": 0.9931, "rp2par_over_rp2": 0.9962}}
+{"layer": 3, "m": 16, "set": 0, "start_row": 112704, "median_us": {"prod": 571.762, "prodpar": 571.39, "rp2": 572.665, "rp2par": 573.095}, "median_ratio": {"rp2_over_prod": 1.0017, "rp2par_over_prod": 1.0024, "prodpar_over_prod": 0.9991, "rp2par_over_rp2": 1.0007}}
+{"layer": 3, "m": 16, "set": 1, "start_row": 319649, "median_us": {"prod": 592.515, "prodpar": 595.238, "rp2": 594.486, "rp2par": 595.221}, "median_ratio": {"rp2_over_prod": 1.003, "rp2par_over_prod": 1.0044, "prodpar_over_prod": 1.0046, "rp2par_over_rp2": 1.0014}}
+{"layer": 3, "m": 16, "set": 2, "start_row": 563458, "median_us": {"prod": 593.992, "prodpar": 594.347, "rp2": 594.56, "rp2par": 594.447}, "median_ratio": {"rp2_over_prod": 1.0008, "rp2par_over_prod": 1.0003, "prodpar_over_prod": 1.0004, "rp2par_over_rp2": 0.9996}}
+{"layer": 3, "m": 16, "set": 3, "start_row": 31075, "median_us": {"prod": 594.434, "prodpar": 594.771, "rp2": 595.423, "rp2par": 595.594}, "median_ratio": {"rp2_over_prod": 1.0017, "rp2par_over_prod": 1.002, "prodpar_over_prod": 1.0005, "rp2par_over_rp2": 1.0002}}
+{"summary": {"L8_M1": {"rp2_over_prod": 1.0321, "rp2par_over_prod": 1.0004, "prodpar_over_prod": 0.9879, "rp2par_over_rp2": 0.9693}, "L8_M4": {"rp2_over_prod": 1.0165, "rp2par_over_prod": 1.0118, "prodpar_over_prod": 0.999, "rp2par_over_rp2": 0.9864}, "L8_M16": {"rp2_over_prod": 0.9759, "rp2par_over_prod": 0.9768, "prodpar_over_prod": 1.0038, "rp2par_over_rp2": 1.0009}, "L3_M1": {"rp2_over_prod": 1.0597, "rp2par_over_prod": 1.0312, "prodpar_over_prod": 1.0013, "rp2par_over_rp2": 0.9726}, "L3_M4": {"rp2_over_prod": 1.0345, "rp2par_over_prod": 1.0268, "prodpar_over_prod": 1.0168, "rp2par_over_rp2": 0.9811}, "L3_M16": {"rp2_over_prod": 1.0017, "rp2par_over_prod": 1.0022, "prodpar_over_prod": 1.0004, "rp2par_over_rp2": 1.0004}}}
+{"status": "done", "identity_gate": "PASS"}
+exit 0

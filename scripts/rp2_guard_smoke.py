@@ -77,6 +77,8 @@ def main() -> None:
     with open(OUT, "w") as fh:
         json.dump(out, fh, indent=1)
     print(json.dumps({"status": out["status"]}), flush=True)
+    if out["status"] != "PASS":
+        sys.exit(1)
 
 
 if __name__ == "__main__":

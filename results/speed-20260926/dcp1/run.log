@@ -1,0 +1,4 @@
+12:31:47 leases held; PaddleOCR paused; GPU3 gpc offset [0, 0, 0, 150]
+12:31:47 rp2: starting DCP1 server
+12:34:43 rp2: healthy; kv ['3,823,412 tokens, Maximum concurrency for 1,000,000 tokens per request: 3.82x']; rp2 markers 168; epi markers 168; dcp lines 1
+12:36:39 {"arm": "rp2", "cell": "C1 0", "rc": 0, "tps": 222.71148775598974, "mtp_accept": 0.5903614457831325, "seconds": 39.0, "gate": true}

@@ -166,6 +166,28 @@
    }
   }
  },
+ "primary_robustness": {
+  "rp2-fp8_minus_control-fp8": {
+   "bonferroni_bca97_5_relative": [
+    -0.07592442981208676,
+    -0.012205683516723183
+   ],
+   "ratio_of_means_bca95": [
+    -0.07196972531012792,
+    -0.017986684731475456
+   ]
+  },
+  "rp2-fp8_minus_tr3-fp8": {
+   "bonferroni_bca97_5_relative": [
+    0.010763320398751419,
+    0.15310657770187167
+   ],
+   "ratio_of_means_bca95": [
+    0.018689153349439356,
+    0.14571528693183303
+   ]
+  }
+ },
  "per_domain": {
   "axis1_general": {
    "rp2-fp8_minus_control-fp8": {

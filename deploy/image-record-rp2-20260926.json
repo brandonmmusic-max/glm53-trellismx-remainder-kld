@@ -1,0 +1,42 @@
+{
+ "schema_version": 4,
+ "record_id": "trellismx-rp2-20260926",
+ "title": "TrellisMX GLM-5.3 Flash r27 + RP2 (two-term FP8 activation carrier on the decode kernels)",
+ "image": {
+  "repository": "verdictai/trellismx",
+  "tag": "glm53-flash-p8-r27-rp2-20260926",
+  "digest": "sha256:a0392e1c370eb933d87511928ea3aba6d5d63965cfe6eeaf9cc026a667e98ddc",
+  "reference": "verdictai/trellismx:glm53-flash-p8-r27-rp2-20260926@sha256:a0392e1c370eb933d87511928ea3aba6d5d63965cfe6eeaf9cc026a667e98ddc"
+ },
+ "base_image": {
+  "reference": "verdictai/trellismx:glm53-flash-p8-r27-reference-20260909@sha256:ca6b80188dce154b91f49108b7d87792d2ba6328935afc71b44d1c0e6f6a1adf",
+  "relationship": "One added layer: /opt/glm53-flash/b12x replaced by the RP2 tree (RP2 + host-side guards + EPI-PAR in the M1 FC1 kernel), plus /release/serve-rp2.sh"
+ },
+ "build": {
+  "dockerfile_sha256": "7354c131fd557415201c0e8adbf0b49718795c944e60859c9b9455dad3f7697b",
+  "serve_script_sha256": "75c4eac28dbeafc0150398201b6a7ed5f53c1017ae6bb714b34e8c2e92f1d3cf",
+  "compose_sha256": "0c63c3e4274bf24d6f1904826970045991f45ea13be91ddd27be899b1ac9258e",
+  "kernel_source": "github.com/brandonmmusic-max/glm53-trellismx-remainder-kld: patches/b12x-dx2-rowpack-rp2.diff + patches/b12x-dx2-guards.diff; EPI-PAR (M1 FC1 epilogue, bit-identical) described in the release notes"
+ },
+ "defaults": {
+  "B12X_P8_DOWN_REMAINDER": "rp2",
+  "B12X_P8_EPI_PAR": "1",
+  "KV_CACHE_DTYPE": "fp8",
+  "TP": "4",
+  "DCP": "4",
+  "NUM_SPECULATIVE_TOKENS": "3",
+  "MAX_NUM_SEQS": "48",
+  "MAX_NUM_BATCHED_TOKENS": "8192",
+  "GPU_MEMORY_UTILIZATION": "0.88"
+ },
+ "verification": {
+  "kernel_identity": "56/56 cells bit-identical to the measured RP2 and r27 kernels (layers 3/8/23/43, ranks 0/3, M1/M4/M16/M64)",
+  "kld_128_windows_fp8_kv": {
+   "rp2": 0.03260408965478527,
+   "r27_reference_kernels": 0.034282591712284864,
+   "tr3_4bpw": 0.0300999449492031
+  },
+  "speed": "see the release notes (DCP1 greedy fixed-input A/B and DCP4 production-profile A/B)"
+ },
+ "status": "published 2026-09-26"
+}

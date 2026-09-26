@@ -1,10 +1,10 @@
 #!/bin/bash
-# RP2 guard smoke launcher: production image, scratch b12x over /opt/glm53-flash/b12x, no network,
+# EPI-PAR check launcher: production image, scratch b12x over /opt/glm53-flash/b12x, no network,
 # one GPU, production untouched. Compile caches off (they key on the spec, not the arm).
 set -euo pipefail
 HERE=<workspace>/p8-remainder-kvrot-20260923
 GPU=${GPU:-0}
-exec docker run --rm --name p8-rp2-guard-smoke-20260926 --gpus "\"device=${GPU}\"" --network none \
+exec docker run --rm --name p8-epipar-check-20260926 --gpus "\"device=${GPU}\"" --network none \
   -e HOME=/work/cache/home -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
   -e B12X_COMPILE_MEMORY_CACHE=0 -e B12X_COMPILE_DISK_CACHE=0 \
   -e B12X_COMPILE_CACHE_DIR=/work/cache/b12x-compile -e B12X_CUTE_COMPILE_CACHE_DIR=/work/cache/b12x-cute \
@@ -14,11 +14,13 @@ exec docker run --rm --name p8-rp2-guard-smoke-20260926 --gpus "\"device=${GPU}\
   -e B12X_DYNAMIC_SPLIT_LOW_SMEM=1 -e B12X_DYNAMIC_SKIP_SPLIT_BARRIER_RESET=1 \
   -e B12X_DYNAMIC_SPLIT_FAST_PREPARE=1 -e B12X_DYNAMIC_WORK_SOURCE=persistent_grid \
   -e B12X_DYNAMIC_SPLIT_COMPUTE_MAC=224 -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
-  -e RP2_LAYER="${RP2_LAYER:-8}" -e RP2_OUT="${RP2_OUT:-/work/results/rp2_guard_smoke.json}" \
-  -v "$HERE/${B12X_TREE:-b12x-dx2rp2-guarded}:/opt/glm53-flash/b12x:ro" \
+  -e ZR_LAYERS="${ZR_LAYERS:-8,3}" -e ZR_MS="${ZR_MS:-1,4,16}" -e ZR_BLOCKS="${ZR_BLOCKS:-40}" \
+  -e ZR_REPLAYS="${ZR_REPLAYS:-200}" -e ZR_INPUT_SETS="${ZR_INPUT_SETS:-4}" \
+  -e EP_LAYERS="${EP_LAYERS:-8,3}" -e EP_MS="${EP_MS:-1,4,16}" -e EP_BLOCKS="${EP_BLOCKS:-60}" -e EP_REPLAYS="${EP_REPLAYS:-200}" -e EP_OUT="${EP_OUT:-/work/results/epipar_check.json}" \
+  -v "$HERE/${B12X_TREE:-b12x-rp2par}:/opt/glm53-flash/b12x:ro" \
   -v <model-volume>/glm53-trellismx-native6/trellismx-r27-local-checkpoint-v1:/checkpoint:ro \
   -v <data-volume>:<data-volume>:ro \
   -v "$HERE:/work" \
   --entrypoint /bin/bash \
   verdictai/trellismx@sha256:ca6b80188dce154b91f49108b7d87792d2ba6328935afc71b44d1c0e6f6a1adf \
-  -c '/opt/venv/bin/python /work/scripts/rp2_guard_smoke.py; rc=$?; chown -R "$HOST_UID:$HOST_GID" /work/results /work/cache; exit $rc'
+  -c '/opt/venv/bin/python /work/scripts/epipar_check.py; rc=$?; chown -R "$HOST_UID:$HOST_GID" /work/results /work/cache; exit $rc'

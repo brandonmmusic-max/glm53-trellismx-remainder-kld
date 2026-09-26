@@ -77,6 +77,20 @@ def main() -> None:
     for name, sub in (("original_32", ids[:32]), ("new_96", ids[32:]), ("interim_look_first_47", ids[:47])):
         out["subsets"][name] = {f"{x}_minus_{y}": paired(kld[x], kld[y], sub) for x, y in pairs}
 
+    # Robustness of the two preregistered primaries: Bonferroni-adjusted (97.5%) paired BCa, and a paired BCa interval
+    # for the ratio of means (relative difference with the denominator resampled too).
+    out["primary_robustness"] = {}
+    for x, y in (("rp2-fp8", "control-fp8"), ("rp2-fp8", "tr3-fp8")):
+        xa = np.array([kld[x][w] for w in ids])
+        ya = np.array([kld[y][w] for w in ids])
+        d = xa - ya
+        bon = bootstrap((d,), np.mean, method="BCa", n_resamples=N, random_state=SEED, confidence_level=0.975).confidence_interval
+        rom = bootstrap((xa, ya), lambda a, b: a.mean() / b.mean() - 1.0, paired=True, vectorized=False, method="BCa",
+                        n_resamples=N, random_state=SEED).confidence_interval
+        out["primary_robustness"][f"{x}_minus_{y}"] = {
+            "bonferroni_bca97_5_relative": [float(bon.low / ya.mean()), float(bon.high / ya.mean())],
+            "ratio_of_means_bca95": [float(rom.low), float(rom.high)]}
+
     # Per-domain paired differences (12 intervals, no multiplicity correction).
     domains = sorted(set(dom.values()))
     out["per_domain"] = {d: {f"{x}_minus_{y}": paired(kld[x], kld[y], [w for w in ids if dom[w] == d]) for x, y in pairs}

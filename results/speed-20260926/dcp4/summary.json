@@ -1,0 +1,220 @@
+{
+ "decode": {
+  "C8 0K": {
+   "control": {
+    "tps": 581.4860855204306,
+    "mtp_accept": 0.5846774193548387,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 0
+   },
+   "candidate": {
+    "tps": 569.945303134042,
+    "mtp_accept": 0.5,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 0
+   },
+   "ratio_candidate_over_control": 0.9801529517665765
+  },
+  "C8 8K": {
+   "control": {
+    "tps": 478.0746442449057,
+    "mtp_accept": 0.6206896551724138,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 8192
+   },
+   "candidate": {
+    "tps": 499.3408201534113,
+    "mtp_accept": 0.5897435897435898,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 8192
+   },
+   "ratio_candidate_over_control": 1.044482961321018
+  },
+  "C8 16K": {
+   "control": {
+    "tps": 469.65402138721566,
+    "mtp_accept": 0.5144927536231884,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 16384
+   },
+   "candidate": {
+    "tps": 474.5046311025768,
+    "mtp_accept": 0.6491228070175439,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 16384
+   },
+   "ratio_candidate_over_control": 1.010328048934903
+  },
+  "C8 32K": {
+   "control": {
+    "tps": 471.01173508056456,
+    "mtp_accept": 0.6296296296296297,
+    "errors": 0,
+    "underfilled": true,
+    "context_tokens": 32768
+   },
+   "candidate": {
+    "tps": 473.9031587411882,
+    "mtp_accept": 0.5972222222222222,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 32768
+   },
+   "ratio_candidate_over_control": 1.0061387507895723
+  },
+  "C1 0K": {
+   "control": {
+    "tps": 186.71527216845266,
+    "mtp_accept": 0.6017316017316018,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 0
+   },
+   "candidate": {
+    "tps": 195.0213195422227,
+    "mtp_accept": 0.4824561403508772,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 0
+   },
+   "ratio_candidate_over_control": 1.0444850990350505
+  },
+  "C1 8K": {
+   "control": {
+    "tps": 188.66723260593938,
+    "mtp_accept": 0.6578947368421053,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 8192
+   },
+   "candidate": {
+    "tps": 197.8274541901169,
+    "mtp_accept": 0.5701754385964912,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 8192
+   },
+   "ratio_candidate_over_control": 1.048552265582387
+  },
+  "C1 16K": {
+   "control": {
+    "tps": 184.57136914160716,
+    "mtp_accept": 0.4666666666666667,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 16384
+   },
+   "candidate": {
+    "tps": 190.3051269658691,
+    "mtp_accept": 0.7927927927927928,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 16384
+   },
+   "ratio_candidate_over_control": 1.0310652613724878
+  },
+  "C1 32K": {
+   "control": {
+    "tps": 185.27791734244457,
+    "mtp_accept": 0.3508771929824561,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 32768
+   },
+   "candidate": {
+    "tps": 185.44197461152083,
+    "mtp_accept": 0.398989898989899,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 32768
+   },
+   "ratio_candidate_over_control": 1.0008854658527548
+  },
+  "C1 64K": {
+   "control": {
+    "tps": 187.89543111478037,
+    "mtp_accept": 0.5254237288135594,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 65536
+   },
+   "candidate": {
+    "tps": 192.99974255047906,
+    "mtp_accept": 0.6313131313131313,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 65536
+   },
+   "ratio_candidate_over_control": 1.0271657027816743
+  },
+  "C1 128K": {
+   "control": {
+    "tps": 181.9401831798308,
+    "mtp_accept": 0.5555555555555556,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 131072
+   },
+   "candidate": {
+    "tps": 183.5512551066467,
+    "mtp_accept": 0.6538461538461539,
+    "errors": 0,
+    "underfilled": false,
+    "context_tokens": 131072
+   },
+   "ratio_candidate_over_control": 1.0088549538571339
+  }
+ },
+ "prefill": {
+  "8192": {
+   "control": 8102.0,
+   "candidate": 8618.0,
+   "ratio_candidate_over_control": 1.0636879782769686
+  },
+  "16384": {
+   "control": 8265.0,
+   "candidate": 8732.0,
+   "ratio_candidate_over_control": 1.0565033272837265
+  },
+  "32768": {
+   "control": 8292.0,
+   "candidate": 8775.0,
+   "ratio_candidate_over_control": 1.0582489146164977
+  },
+  "65536": {
+   "control": 8219.0,
+   "candidate": 8716.0,
+   "ratio_candidate_over_control": 1.0604696435089427
+  },
+  "131072": {
+   "control": 8072.0,
+   "candidate": 8559.0,
+   "ratio_candidate_over_control": 1.0603320118929633
+  }
+ },
+ "profiles": {},
+ "runtime": {
+  "control": {
+   "rp2_markers": 0,
+   "epi_par_markers": 0,
+   "kv_dtype_ok": true,
+   "kv_cache_size": [
+    "12,575,163 tokens, Maximum concurrency for 1,000,000 tokens per request: 12.58x"
+   ]
+  },
+  "candidate": {
+   "rp2_markers": 168,
+   "epi_par_markers": 168,
+   "kv_dtype_ok": true,
+   "kv_cache_size": [
+    "8,141,843 tokens, Maximum concurrency for 1,000,000 tokens per request: 8.14x"
+   ]
+  }
+ }
+}

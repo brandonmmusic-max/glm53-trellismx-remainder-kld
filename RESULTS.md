@@ -89,7 +89,8 @@ Decisive layers are the MLA layers 7, 15, 19, 27, 35 and 43, with stand-ins from
 | latent NMSE (U = 0.0090) | 1.0011 [1.0009, 1.0013] | 1.0006 [1.0004, 1.0008] |
 | attention-logit error | 1.0055 [1.0044, 1.0066] | 1.0056 [1.0044, 1.0068] |
 
-Why it fails: the latent after `kv_a_layernorm` is already Gaussian-shaped.
+Why it fails (likely explanation, not a demonstrated cause; corrected 09-26, see the audit section): the latent
+after `kv_a_layernorm` is already Gaussian-shaped.
 - Per-token amax/RMS is 3.25, the value for a 512-dim Gaussian.
 - The NVFP4 error of 0.0090 NMSE is the Gaussian floor.
 - There are no outlier channels for a rotation to spread.
@@ -386,13 +387,14 @@ All 128 conditional-fit windows were scored in every arm (2,046 scored rows per 
 **Scope of the result.**
 - True decode with MTP0 and one sequence means every scored token ran the M1 direct path, where RP2 is active.
   Every position, including the KV entries it writes, is computed by decode steps.
-- In serving, the prompt is prefilled by the unchanged prefill kernels. The prompt's hidden states and KV entries
-  therefore carry control numerics, and only generated tokens use RP2. The served-model effect is expected to be
+- In serving, prompts longer than 16 tokens are prefilled by the unchanged prefill kernels, so most of a prompt's
+  hidden states and KV entries carry control numerics; RP2 applies to decode steps and to any step with <= 16 tokens
+  (corrected 09-26 from "only generated tokens use RP2"). The served-model effect is expected to be
   smaller than the true-decode effect measured here. This was not measured.
 - In serving, RP2 covers the direct kernels only (M <= 16 tokens per step). Examples:
   - with MTP3, one sequence verifies 4 tokens per step and 4 sequences verify 16, so both stay on the direct path;
-  - 5 or more concurrent sequences with MTP3 (20+ tokens per step), and all prompt prefill, use the grouped and
-    prefill kernels, which are unchanged (`p8_native_kernel.py`: `small_m = m <= 16` on the full-coupled path).
+  - 5 or more concurrent sequences with MTP3 (20+ tokens per step), and prefill steps with more than 16 tokens
+    (most prompt prefills; corrected 09-26 from "all prompt prefill"), use the grouped and prefill kernels, which are unchanged (`p8_native_kernel.py`: `small_m = m <= 16` on the full-coupled path).
 - FP8 MLA KV throughout. NVFP4-KV production numbers are in Amendments 4-5.
 
 **Speed (descriptive, preregistered as such).**

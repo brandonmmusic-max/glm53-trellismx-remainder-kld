@@ -1,0 +1,119 @@
+diff -r -u -x __pycache__ -x .git b12x-dx2rp2-guarded/b12x/moe/_shared/kernels/route_hoist_k5.py b12x-final/b12x/moe/_shared/kernels/route_hoist_k5.py
+--- b12x-dx2rp2-guarded/b12x/moe/_shared/kernels/route_hoist_k5.py	2026-09-26 04:30:00.218316223 -0400
++++ b12x-final/b12x/moe/_shared/kernels/route_hoist_k5.py	2026-09-26 04:42:57.314517798 -0400
+@@ -715,6 +715,85 @@
+                         scale_bytes = cute.recast_tensor(intermediate_u32, cutlass.Uint8)
+                         sf_base = rows_capacity * words_per_row
+                         scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + row) * Int32(4) + block] = cutlass.Uint8(scale_byte & Uint32(255))
++        elif cutlass.const_expr(getattr(self, "p8_epi_par", False)):
++            # EPI-PAR: one thread per (row, 32-block) instead of one thread per row.
++            # Per-block math is the serial path's text with tid -> epi_row, so outputs are bit-identical.
++            if tid < valid_rows * Int32(self.owned_n // 32):
++                epi_row = tid >> Int32((self.owned_n // 32).bit_length() - 1)
++                block = (tid & Int32(self.owned_n // 32 - 1)) + subtile * Int32(self.owned_n // 32)
++                scale_word = Uint32(0)
++                values = cute.make_rmem_tensor((32,), cutlass.Float32)
++                block_max = cutlass.Float32(0.0)
++                for elem in cutlass.range_constexpr(32):
++                    element_index = epi_row * Int32(self.tile_n) + Int32(block * 32 + elem)
++                    value_addr = epilogue_base + element_index * Int32(2)
++                    if cutlass.const_expr(self.full_coupled):
++                        value_addr = full_output_base + element_index * Int32(4)
++                    value = ld_shared_bf16_to_f32(value_addr)
++                    if cutlass.const_expr(self.full_coupled):
++                        value = ld_shared_f32(value_addr)
++                    elif cutlass.const_expr(self.scale_sandwich):
++                        value = _p8_ld_shared_f16_to_f32(value_addr)
++                    values[elem] = value
++                    abs_value = fabs_f32(value)
++                    if abs_value > block_max:
++                        block_max = abs_value
++                if cutlass.const_expr(self.w4a8_trellis):
++                    payload, scale_byte = quantize_block_fp8_mx(_w4a8_trellis_permute_k32(values), block_max)
++                else:
++                    payload, scale_byte = quantize_block_fp8_mx(values, block_max)
++                dst_word = (physical_row_base + epi_row) * words_per_row + output_tile * Int32(32) + Int32(block * 8)
++                for word in cutlass.range_constexpr(8):
++                    intermediate_u32[dst_word + Int32(word)] = payload[word]
++                sf_base = rows_capacity * words_per_row
++                scale_bytes = cute.recast_tensor(intermediate_u32, cutlass.Uint8)
++                scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + epi_row) * Int32(4) + block] = cutlass.Uint8(scale_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    # D-x2: second E4M3/UE8M0-K32 plane, lo = v - dq(hi), after the whole hi region.
++                    dx2_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        dx2_vals = _w4a8_trellis_permute_k32(values)
++                    dx2_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    dx2_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    dx2_max = cutlass.Float32(0.0)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        dx2_h0, dx2_h1, dx2_h2, dx2_h3 = cvt_e4m3x4_to_f32x4(payload[dx2_w])
++                        dx2_lo[dx2_w * 4 + 0] = dx2_vals[dx2_w * 4 + 0] - dx2_h0 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 1] = dx2_vals[dx2_w * 4 + 1] - dx2_h1 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 2] = dx2_vals[dx2_w * 4 + 2] - dx2_h2 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 3] = dx2_vals[dx2_w * 4 + 3] - dx2_h3 * dx2_scale
++                    for dx2_e in cutlass.range_constexpr(32):
++                        dx2_abs = fabs_f32(dx2_lo[dx2_e])
++                        if dx2_abs > dx2_max:
++                            dx2_max = dx2_abs
++                    dx2_payload, dx2_byte = quantize_block_fp8_mx(dx2_lo, dx2_max)
++                    dx2_off = rows_capacity * (words_per_row + intermediate_tiles)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        intermediate_u32[dx2_off + dst_word + Int32(dx2_w)] = dx2_payload[dx2_w]
++                    scale_bytes[(dx2_off + sf_base + output_tile * rows_capacity + physical_row_base + epi_row) * Int32(4) + block] = cutlass.Uint8(dx2_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                    # D-x2-RP: lo = v - dq(hi) into row +8 of this route's own tile (direct tiles hold one route).
++                    rp_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        rp_vals = _w4a8_trellis_permute_k32(values)
++                    rp_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    rp_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    rp_max = cutlass.Float32(0.0)
++                    for rp_w in cutlass.range_constexpr(8):
++                        rp_h0, rp_h1, rp_h2, rp_h3 = cvt_e4m3x4_to_f32x4(payload[rp_w])
++                        rp_lo[rp_w * 4 + 0] = rp_vals[rp_w * 4 + 0] - rp_h0 * rp_scale
++                        rp_lo[rp_w * 4 + 1] = rp_vals[rp_w * 4 + 1] - rp_h1 * rp_scale
++                        rp_lo[rp_w * 4 + 2] = rp_vals[rp_w * 4 + 2] - rp_h2 * rp_scale
++                        rp_lo[rp_w * 4 + 3] = rp_vals[rp_w * 4 + 3] - rp_h3 * rp_scale
++                    for rp_e in cutlass.range_constexpr(32):
++                        rp_abs = fabs_f32(rp_lo[rp_e])
++                        if rp_abs > rp_max:
++                            rp_max = rp_abs
++                    rp_payload, rp_byte = quantize_block_fp8_mx(rp_lo, rp_max)
++                    rp_dst = dst_word + Int32(8) * words_per_row
++                    for rp_w in cutlass.range_constexpr(8):
++                        intermediate_u32[rp_dst + Int32(rp_w)] = rp_payload[rp_w]
++                    scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + epi_row + Int32(8)) * Int32(4) + block] = cutlass.Uint8(rp_byte & Uint32(255))
+         elif tid < valid_rows:
+             scale_word = Uint32(0)
+             for local_block in cutlass.range_constexpr(self.owned_n // 32):
+diff -r -u -x __pycache__ -x .git b12x-dx2rp2-guarded/b12x/moe/_shared/trellismx/p8_native_kernel.py b12x-final/b12x/moe/_shared/trellismx/p8_native_kernel.py
+--- b12x-dx2rp2-guarded/b12x/moe/_shared/trellismx/p8_native_kernel.py	2026-09-26 04:30:00.218617153 -0400
++++ b12x-final/b12x/moe/_shared/trellismx/p8_native_kernel.py	2026-09-26 04:42:57.314590109 -0400
+@@ -113,6 +113,10 @@
+         self._dx2_phases = os.environ.get("B12X_P8_DOWN_REMAINDER_PHASES", "both")
+         self.p8_dx2_rowpack = os.environ.get("B12X_P8_DOWN_REMAINDER") in ("rp", "rp2")
+         self.p8_input_rowpack = os.environ.get("B12X_P8_DOWN_REMAINDER") == "rp2"
++        # EPI-PAR: bit-identical parallel small-M FC1 epilogue; joins the compile spec below.
++        self.p8_epi_par = os.environ.get("B12X_P8_EPI_PAR") == "1"
++        if self.p8_epi_par:
++            print(f"P8_EPI_PAR_ACTIVE layer={layer} rank={tp_rank}", flush=True)
+         if self.p8_dx2_rowpack:
+             print(f"P8_DX2_ROWPACK_ACTIVE layer={layer} rank={tp_rank} input_hop={int(self.p8_input_rowpack)}", flush=True)
+         self.grouped_m16 = bool(grouped_m16)
+@@ -469,6 +473,7 @@
+                 fc1 = kernel.materialized_phase1_kernel
+                 fc1.p8_a_swizzle_rotate = self.fc1_a_swizzle_rotate
+                 fc1.p8_warp_quant = self.fc1_warp_quant
++                fc1.p8_epi_par = self.p8_epi_par
+                 fc1.p8_exact_staging = self.fc1_exact_staging
+                 # Direct owner invokes _run_task with valid_rows=1. Never
+                 # apply this specialization to grouped multi-row owners.
+@@ -589,6 +594,7 @@
+                 ("down_remainder_phases", self._dx2_phases if self.p8_down_remainder else "none"),
+                 ("dx2_rowpack", int(self.p8_dx2_rowpack and small_m)),
+                 ("dx2_input_rowpack", int(self.p8_input_rowpack and small_m)),
++                ("epi_par", int(self.p8_epi_par and small_m)),
+             ),
+             dsl_compile_options=OptLevel(2),
+         )

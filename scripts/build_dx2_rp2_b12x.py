@@ -444,8 +444,8 @@ def main() -> None:
             "                (\"dx2_input_rowpack\", int(self.p8_input_rowpack and small_m)),\n"
             "            ),\n            dsl_compile_options=OptLevel(2),",
             1, "p8_native_kernel.py")
-    if os.environ.get("DX2_GUARDS") == "1":
-        # Post-audit (2026-09-26), opt-in so the default build still reproduces the measured trees byte for byte.
+    if os.environ.get("DX2_GUARDS", "1") != "0":
+        # Post-audit (2026-09-26): on by default. DX2_GUARDS=0 reproduces the measured trees byte for byte.
         # Host-side checks that reject flag combinations the remainder code does not support. The measured runs used
         # fc1_warp_quant=False, fc1_broadcast_a=True, tile_major_tasks=False and grouped_m16=False, which all pass.
         s = rep(s, "                raise RuntimeError(\"D-x2 is implemented for the full-coupled P8 paths only\")\n",

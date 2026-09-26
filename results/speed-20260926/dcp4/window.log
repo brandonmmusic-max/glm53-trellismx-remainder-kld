@@ -1,0 +1,39 @@
+05:28:50 production idle 30 s; stopping trellismx-klc.service for the approved window
+05:28:53 production stopped; model-stack and llm-workload leases held
+05:28:53 control: starting server on :8038
+05:31:29 control: healthy; {"rp2_markers": 0, "epi_par_markers": 0, "kv_dtype_ok": true, "kv_cache_size": ["12,575,163 tokens, Maximum concurrency for 1,000,000 tokens per request: 12.58x"]}
+05:33:36 {"arm": "control", "name": "decode-ctx0-c8", "rc": 0, "seconds": 49.1, "gate_passed": true, "output": "decode-ctx0-c8.json", "aggregate_tps": [581.4860855204306]}
+05:36:01 {"arm": "control", "name": "decode-ctx8192-c8", "rc": 0, "seconds": 53.2, "gate_passed": true, "output": "decode-ctx8192-c8.json", "aggregate_tps": [478.0746442449057]}
+05:38:31 {"arm": "control", "name": "decode-ctx16384-c8", "rc": 0, "seconds": 58.2, "gate_passed": true, "output": "decode-ctx16384-c8.json", "aggregate_tps": [469.65402138721566]}
+05:41:04 {"arm": "control", "name": "decode-ctx32768-c8", "rc": 0, "seconds": 61.4, "gate_passed": true, "output": "decode-ctx32768-c8.json", "aggregate_tps": [471.01173508056456]}
+05:43:25 {"arm": "control", "name": "decode-ctx0-c1", "rc": 0, "seconds": 49.0, "gate_passed": true, "output": "decode-ctx0-c1.json", "aggregate_tps": [186.71527216845266]}
+05:45:45 {"arm": "control", "name": "decode-ctx8192-c1", "rc": 0, "seconds": 49.0, "gate_passed": true, "output": "decode-ctx8192-c1.json", "aggregate_tps": [188.66723260593938]}
+05:48:05 {"arm": "control", "name": "decode-ctx16384-c1", "rc": 0, "seconds": 49.5, "gate_passed": true, "output": "decode-ctx16384-c1.json", "aggregate_tps": [184.57136914160716]}
+05:50:29 {"arm": "control", "name": "decode-ctx32768-c1", "rc": 0, "seconds": 53.2, "gate_passed": true, "output": "decode-ctx32768-c1.json", "aggregate_tps": [185.27791734244457]}
+05:53:01 {"arm": "control", "name": "decode-ctx65536-c1", "rc": 0, "seconds": 60.7, "gate_passed": true, "output": "decode-ctx65536-c1.json", "aggregate_tps": [187.89543111478037]}
+05:55:52 {"arm": "control", "name": "decode-ctx131072-c1", "rc": 0, "seconds": 78.6, "gate_passed": true, "output": "decode-ctx131072-c1.json", "aggregate_tps": [181.9401831798308]}
+05:59:28 {"arm": "control", "name": "prefill", "rc": 0, "seconds": 124.8, "gate_passed": true, "output": "prefill.json"}
+06:01:00 {"arm": "control", "name": "profile-estonia", "rc": 2, "seconds": 0.3, "gate_passed": true, "output": null}
+06:02:30 {"arm": "control", "name": "profile-lavd-test", "rc": 2, "seconds": 0.2, "gate_passed": true, "output": null}
+06:04:01 {"arm": "control", "name": "profile-hotel-lights", "rc": 2, "seconds": 0.2, "gate_passed": true, "output": null}
+06:04:04 control: complete
+06:04:04 candidate: starting server on :8038
+06:07:35 candidate: healthy; {"rp2_markers": 168, "epi_par_markers": 168, "kv_dtype_ok": true, "kv_cache_size": ["8,141,843 tokens, Maximum concurrency for 1,000,000 tokens per request: 8.14x"]}
+06:09:29 {"arm": "candidate", "name": "decode-ctx0-c8", "rc": 0, "seconds": 49.0, "gate_passed": true, "output": "decode-ctx0-c8.json", "aggregate_tps": [569.945303134042]}
+06:11:53 {"arm": "candidate", "name": "decode-ctx8192-c8", "rc": 0, "seconds": 52.6, "gate_passed": true, "output": "decode-ctx8192-c8.json", "aggregate_tps": [499.3408201534113]}
+06:14:22 {"arm": "candidate", "name": "decode-ctx16384-c8", "rc": 0, "seconds": 56.5, "gate_passed": true, "output": "decode-ctx16384-c8.json", "aggregate_tps": [474.5046311025768]}
+06:16:54 {"arm": "candidate", "name": "decode-ctx32768-c8", "rc": 0, "seconds": 60.7, "gate_passed": true, "output": "decode-ctx32768-c8.json", "aggregate_tps": [473.9031587411882]}
+06:19:13 {"arm": "candidate", "name": "decode-ctx0-c1", "rc": 0, "seconds": 48.9, "gate_passed": true, "output": "decode-ctx0-c1.json", "aggregate_tps": [195.0213195422227]}
+06:21:34 {"arm": "candidate", "name": "decode-ctx8192-c1", "rc": 0, "seconds": 49.1, "gate_passed": true, "output": "decode-ctx8192-c1.json", "aggregate_tps": [197.8274541901169]}
+06:23:55 {"arm": "candidate", "name": "decode-ctx16384-c1", "rc": 0, "seconds": 49.1, "gate_passed": true, "output": "decode-ctx16384-c1.json", "aggregate_tps": [190.3051269658691]}
+06:26:20 {"arm": "candidate", "name": "decode-ctx32768-c1", "rc": 0, "seconds": 53.1, "gate_passed": true, "output": "decode-ctx32768-c1.json", "aggregate_tps": [185.44197461152083]}
+06:28:51 {"arm": "candidate", "name": "decode-ctx65536-c1", "rc": 0, "seconds": 59.7, "gate_passed": true, "output": "decode-ctx65536-c1.json", "aggregate_tps": [192.99974255047906]}
+06:31:40 {"arm": "candidate", "name": "decode-ctx131072-c1", "rc": 0, "seconds": 76.4, "gate_passed": true, "output": "decode-ctx131072-c1.json", "aggregate_tps": [183.5512551066467]}
+06:35:11 {"arm": "candidate", "name": "prefill", "rc": 0, "seconds": 121.1, "gate_passed": true, "output": "prefill.json"}
+06:36:43 {"arm": "candidate", "name": "profile-estonia", "rc": 2, "seconds": 0.3, "gate_passed": true, "output": null}
+06:38:14 {"arm": "candidate", "name": "profile-lavd-test", "rc": 2, "seconds": 0.3, "gate_passed": true, "output": null}
+06:39:45 {"arm": "candidate", "name": "profile-hotel-lights", "rc": 2, "seconds": 0.2, "gate_passed": true, "output": null}
+06:39:49 candidate: complete
+06:39:49 switching production to the RP2 build (drop-in 50-rp2.conf installed)
+06:39:49 restoring production via systemctl --user start trellismx-klc.service
+06:42:29 production restoration: healthy (service active)
