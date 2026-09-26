@@ -320,3 +320,32 @@ spare-row trick is applied to the input hop on the direct decode paths.
   SwiGLU boundary.
 - Gates as before: closure vs the reference `P-A8x2` (both hops), timing <= 1.03 at M1/M4,
   then an end-to-end remeasure.
+
+## Amendment 6 (2026-09-25 ~20:40, before any D-x2-RP2 number): gates for the both-hop row-pack
+
+**Build.** `scripts/build_dx2_b12x.py` with `DX2_DST=b12x-dx2rp2`, switched on by
+`B12X_P8_DOWN_REMAINDER=rp2`. RP2 is RP plus the following, all behind
+`getattr(self, "p8_input_rowpack", False)`:
+- the input prologue writes `x_lo = q(x - dq(x_hi))` into token row +16;
+- FC1 stages it into A row 8, with its scale word in SFA row 8;
+- the MMA reads A rows q+8 from row 8, with odd-lane scales from row 8, instead of the
+  broadcast duplicate;
+- the FC1 epilogue folds the row q+8 accumulators into row q before the FP16 store.
+
+M>16 paths are unchanged.
+
+**K4 closure.** Same method as K2/K3: layers 3 and 8, four ranks summed, the Test B fit tokens.
+- **Paths:** M1 (first 96 tokens) and M16 (all).
+- **PASS**, per layer and path:
+  - `|D_kernel(prod)/D_ref(P-A8) - 1| <= 5%`;
+  - `D_kernel(RP2)/D_kernel(prod)` within +/-0.05 of the reference both-hop ratio
+    `D(P-A8x2)/D(P-A8)` (Test B: layer 3 = 0.549, layer 8 = 0.869; M1 uses windows 0-1 of the
+    reference per-window damage);
+  - M64 and M3072 bit-identical to prod.
+
+**A4 timing.** As A3: layers 8 and 3, rank 0, >= 60 interleaved blocks x 200 replays, M in
+{1, 4, 16}. **PASS** if the median `RP2/prod` <= 1.03 at M1 and M4 on both layers.
+
+**Next step.** If K4 and A4 pass, RP2 goes to the end-to-end measurement. Its design (window
+count, arms, KV dtype) will be preregistered in a separate amendment after Window 2's FP8
+results are in.

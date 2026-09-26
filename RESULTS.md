@@ -64,7 +64,7 @@ plan, the two-term carrier gives 2.76e-7 (16/16 experts improve).
 | 18 | 4 | 1.21e-3 | 0.474 | 0.516 | 0.474 | 0.951 | 0.517 |
 | 23 | 4 | 1.74e-4 | 0.386 | 0.589 | 0.386 | 0.814 | 0.526 |
 | 33 | 5 | 1.92e-4 | 0.287 | 0.408 | 0.287 | 0.649 | 0.512 |
-| 43 | 5 | 3.59e-4 | 0.553 | 0.444 | 0.554 | 0.950 | 0.613 |
+| 43 | 5 | 3.58e-4 | 0.553 | 0.444 | 0.554 | 0.950 | 0.613 |
 
 \* Arms added after Test A, reported only.
 - Pooled down-only: 0.606 [0.549, 0.673].
@@ -152,7 +152,7 @@ MMA), e.g. +15-16% at M512. The FC1 epilogue adds 0-3%.
 | 6 | 4 | 0.939 | 0.865 | 0.14 |
 | 14 | 4 | 0.901 | 0.840 | 0.16 |
 | 26 | 4 | 0.896 | 0.851 | 0.15 |
-| 21 | 5 | 0.804 | 0.802 | 0.24 |
+| 21 | 5 | 0.804 | 0.802 | 0.23 |
 | 34 | 5 | 0.747 | 0.719 | 0.29 |
 | 42 | 5 | 0.372 | 0.282 | 0.72 |
 
@@ -200,7 +200,7 @@ Preregistered reading: **no detectable change** (the CI crosses 0 by 0.0001).
 Post-hoc, reported only (65,472 rows):
 - median row KL -1.5%;
 - q90 / q99 / q99.9 at -5% / -5% / -8%;
-- mean without the top 0.5% of rows -4.0%;
+- mean without the top 0.5% of rows (rows above the pooled q99.5 dropped from both arms) -4.0%;
 - window medians lower in 23/32.
 
 Server-run noise: control today vs the published 09-09 control (0.0354562) is -1.25% in the
@@ -225,3 +225,50 @@ single runs):
 RP is not slower. The C1 gains track higher MTP acceptance in these runs. That could be a
 benefit of more BF16-like target logits, or a difference in the generated text; single runs
 cannot tell which.
+
+## Amendment 5: FP8 MLA KV window, 2026-09-25 (20:29:49 to production restore)
+
+Same protocol and windows as Amendment 4, with `KV_CACHE_DTYPE=fp8`. The control-fp8 server
+logged 0 RP markers; the rp-fp8 server logged 168.
+
+| arm | mean true-decode KLD | window BCa95 |
+|---|---|---|
+| control-fp8 | 0.0311958 | [0.02643, 0.03776] |
+| rp-fp8 | 0.0309337 | [0.02617, 0.03750] |
+
+**rp-fp8 - control-fp8 = -0.00026 (-0.84%), paired BCa95 [-0.001146, +0.001246], lower in
+19/32: no detectable change.**
+
+Paired comparisons (cross-run where noted, so they carry ~1-2% server-run noise):
+- FP8 KV vs NVFP4 KV, control today: -10.9% [-0.00898, -0.00171], lower in 24/32
+  (significant).
+- FP8 KV vs NVFP4 KV, rp today: -6.4% [-0.00337, -0.00037], lower in 26/32.
+- rp-fp8 vs today's production (control, NVFP4 KV): -11.7% [-0.00892, -0.00212], lower in
+  26/32.
+- rp-fp8 vs TR3 NVFP4 KV (09-09): +1.5% [-0.00315, +0.00357], lower in 15/32.
+- rp-fp8 vs TR3 FP8 KV (09-09): +9.7% [-0.00132, +0.00640], lower in 13/32.
+- control-fp8 vs the published 09-09 TrellisMX FP8 control (0.0319452): -2.3% in the mean;
+  the largest per-window difference is 0.014.
+
+Reading:
+- FP8 KV is a real, significant improvement (about -11%), matching 09-09 (-0.0035).
+- The row-packed down-hop remainder shows -5.6% under NVFP4 KV but -0.8% under FP8 KV. Both
+  intervals cross 0, so its end-to-end effect is small (plausibly 0-6%) and not established
+  on 32 windows.
+
+FP8-KV speed (rp-fp8, same production config, cooling gate and single-run caveats as
+Amendment 4), shown next to the NVFP4-KV runs from the earlier window:
+
+| cell | control NVFP4 | rp NVFP4 | rp FP8 | rp FP8 MTP accept |
+|---|---|---|---|---|
+| C0 / conc 1 | 184.3 | 191.1 | 193.0 | 0.528 |
+| C0 / conc 4 | 300.1 | 301.2 | 293.8 | 0.589 |
+| C8192 / conc 1 | 184.1 | 193.9 | 193.4 | 0.487 |
+| C8192 / conc 4 | 300.7 | 299.0 | 304.0 | 0.613 |
+
+KV capacity (engine log):
+- Production profile (GMU 0.88, 48 seqs): NVFP4 12,581,699 tokens; FP8 8,127,659 tokens
+  (-35%).
+- Capture profile (GMU 0.97, 1 seq): NVFP4 31,565,217 tokens; FP8 19,362,962 tokens.
+
+Production was restored healthy at 21:17:30 (down 20:29:49 to 21:17:30).

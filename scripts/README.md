@@ -17,7 +17,7 @@ In the harnesses, `/work` is this project's root mounted into the container and
 | Script | Purpose |
 |---|---|
 | `build_zero_remainder_b12x.py` | Builds the `b12x-scratch` tree for Test A: adds `...ZR` and `...ZRU` kernel subclasses, selected at compile time by `B12X_P8_ZERO_REMAINDER` (1 both GEMMs, 2 both positive control, 3 FC2 only, 4 FC1 only, 5 FC2 positive control). Every replacement is counted and the build aborts on a mismatch. |
-| `build_dx2_b12x.py` | Builds the `b12x-dx2` tree for Amendments 2 and 3: the plane-based down-hop remainder (`...DX2` classes, `B12X_P8_DOWN_REMAINDER=1`) and the row-packed variant (`...RP` classes, `B12X_P8_DOWN_REMAINDER=rp`). |
+| `build_dx2_b12x.py` | Builds the `b12x-dx2` tree for Amendments 2 and 3: the plane-based down-hop remainder (`...DX2` classes, `B12X_P8_DOWN_REMAINDER=1`) and the row-packed variant (`...RP` classes, `B12X_P8_DOWN_REMAINDER=rp`). This version built the tree measured in K2/K3, A2/A3 and both production windows. An RP2-capable extension (Amendment 6) is in progress and is not included. |
 
 Both builders copy the image's b12x source (`SRC`) and write the patched tree to `DST`.
 `../patches/` holds the resulting diffs.
@@ -70,7 +70,7 @@ with one M1 cell on layer 8, one GPU at a time.
 | Script | Purpose | Output |
 |---|---|---|
 | `window_nvfp4_20260925.py` | NVFP4-KV window. Drains and stops production, then captures and scores the 32 conditional-fit windows with a fresh server for `control` and then `rp`, runs the paired BCa analysis, measures descriptive speed on a private port, and always restores production. It uses `p8_decode_protocol` from the campaign repository. | `results/kld-rp-20260925/` |
-| `window_fp8_20260925.py` | FP8-KV window (`control-fp8` then `rp-fp8`, plus `rp-fp8` speed). This run is in progress, and its results will be added later. | pending |
+| `window_fp8_20260925.py` | FP8-KV window. Same procedure with `KV_CACHE_DTYPE=fp8`: `control-fp8` then `rp-fp8`, plus `rp-fp8` speed. It also records each capture server's KV capacity in its runtime audit. | `results/kld-fp8-20260925/` |
 
 The two window scripts also operate the serving host: systemd user unit, lock files and
 container names. That part is specific to our machine and is kept only as a record of what

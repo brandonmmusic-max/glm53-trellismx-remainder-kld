@@ -1,0 +1,81 @@
+20:29:46 production idle 30 s; stopping trellismx-klc.service for the approved window
+20:29:49 production stopped; model-stack and llm-workload leases held
+20:29:49 KLD control-fp8: starting capture server
+20:32:04 KLD control-fp8: server healthy (0 P8_DX2_ROWPACK_ACTIVE lines); capturing 32 windows
+20:32:31 {"arm": "control-fp8", "window": "conditional-fit-0056", "kld": 0.024550333607030947, "seconds": 26.1}
+20:32:57 {"arm": "control-fp8", "window": "conditional-fit-0008", "kld": 0.06760730486108352, "seconds": 26.0}
+20:33:23 {"arm": "control-fp8", "window": "conditional-fit-0100", "kld": 0.022554773431015484, "seconds": 26.3}
+20:33:49 {"arm": "control-fp8", "window": "conditional-fit-0094", "kld": 0.01753042263827466, "seconds": 26.1}
+20:34:15 {"arm": "control-fp8", "window": "conditional-fit-0083", "kld": 0.02763542138040327, "seconds": 26.0}
+20:34:41 {"arm": "control-fp8", "window": "conditional-fit-0021", "kld": 0.03579344078916036, "seconds": 26.2}
+20:35:08 {"arm": "control-fp8", "window": "conditional-fit-0098", "kld": 0.043339936044714464, "seconds": 26.4}
+20:35:34 {"arm": "control-fp8", "window": "conditional-fit-0080", "kld": 0.040989723281355236, "seconds": 26.3}
+20:36:00 {"arm": "control-fp8", "window": "conditional-fit-0081", "kld": 0.025640923884220995, "seconds": 26.1}
+20:36:26 {"arm": "control-fp8", "window": "conditional-fit-0123", "kld": 0.030168895770219913, "seconds": 26.2}
+20:36:53 {"arm": "control-fp8", "window": "conditional-fit-0090", "kld": 0.03914896838293509, "seconds": 26.3}
+20:37:19 {"arm": "control-fp8", "window": "conditional-fit-0062", "kld": 0.026679760888353315, "seconds": 26.2}
+20:37:45 {"arm": "control-fp8", "window": "conditional-fit-0047", "kld": 0.02228683700002109, "seconds": 26.4}
+20:38:11 {"arm": "control-fp8", "window": "conditional-fit-0051", "kld": 0.013688461449401326, "seconds": 26.3}
+20:38:37 {"arm": "control-fp8", "window": "conditional-fit-0055", "kld": 0.02113725512620228, "seconds": 26.0}
+20:39:04 {"arm": "control-fp8", "window": "conditional-fit-0031", "kld": 0.01637591291245108, "seconds": 26.1}
+20:39:30 {"arm": "control-fp8", "window": "conditional-fit-0003", "kld": 0.019744325545231433, "seconds": 26.3}
+20:39:56 {"arm": "control-fp8", "window": "conditional-fit-0009", "kld": 0.04474625951916416, "seconds": 26.2}
+20:40:22 {"arm": "control-fp8", "window": "conditional-fit-0010", "kld": 0.01631239456560725, "seconds": 26.1}
+20:40:48 {"arm": "control-fp8", "window": "conditional-fit-0011", "kld": 0.0175904832456348, "seconds": 26.3}
+20:41:15 {"arm": "control-fp8", "window": "conditional-fit-0030", "kld": 0.026633869856277657, "seconds": 26.3}
+20:41:41 {"arm": "control-fp8", "window": "conditional-fit-0032", "kld": 0.03318913952761915, "seconds": 26.2}
+20:42:07 {"arm": "control-fp8", "window": "conditional-fit-0035", "kld": 0.015836355931687446, "seconds": 26.3}
+20:42:34 {"arm": "control-fp8", "window": "conditional-fit-0040", "kld": 0.0461132012974174, "seconds": 26.3}
+20:43:00 {"arm": "control-fp8", "window": "conditional-fit-0041", "kld": 0.08103366562945064, "seconds": 26.1}
+20:43:26 {"arm": "control-fp8", "window": "conditional-fit-0046", "kld": 0.058324408857084405, "seconds": 26.3}
+20:43:52 {"arm": "control-fp8", "window": "conditional-fit-0060", "kld": 0.019701752816376768, "seconds": 26.2}
+20:44:19 {"arm": "control-fp8", "window": "conditional-fit-0063", "kld": 0.026633233657913383, "seconds": 26.4}
+20:44:45 {"arm": "control-fp8", "window": "conditional-fit-0074", "kld": 0.039431983682280305, "seconds": 26.3}
+20:45:11 {"arm": "control-fp8", "window": "conditional-fit-0099", "kld": 0.014570973729355405, "seconds": 26.4}
+20:45:37 {"arm": "control-fp8", "window": "conditional-fit-0113", "kld": 0.05027265839255388, "seconds": 26.1}
+20:46:04 {"arm": "control-fp8", "window": "conditional-fit-0118", "kld": 0.013003552318011346, "seconds": 26.3}
+20:46:05 KLD control-fp8: complete
+20:46:05 KLD rp-fp8: starting capture server
+20:48:21 KLD rp-fp8: server healthy (168 P8_DX2_ROWPACK_ACTIVE lines); capturing 32 windows
+20:48:47 {"arm": "rp-fp8", "window": "conditional-fit-0056", "kld": 0.021293178365338356, "seconds": 26.3}
+20:49:14 {"arm": "rp-fp8", "window": "conditional-fit-0008", "kld": 0.06841071976203912, "seconds": 26.3}
+20:49:40 {"arm": "rp-fp8", "window": "conditional-fit-0100", "kld": 0.022581379589915206, "seconds": 26.3}
+20:50:11 {"arm": "rp-fp8", "window": "conditional-fit-0094", "kld": 0.017902352665366012, "seconds": 30.8}
+20:50:37 {"arm": "rp-fp8", "window": "conditional-fit-0083", "kld": 0.028347559879683768, "seconds": 26.4}
+20:51:03 {"arm": "rp-fp8", "window": "conditional-fit-0021", "kld": 0.036565324513976136, "seconds": 26.2}
+20:51:30 {"arm": "rp-fp8", "window": "conditional-fit-0098", "kld": 0.04309230554748086, "seconds": 26.3}
+20:51:56 {"arm": "rp-fp8", "window": "conditional-fit-0080", "kld": 0.03873478794946364, "seconds": 26.3}
+20:52:22 {"arm": "rp-fp8", "window": "conditional-fit-0081", "kld": 0.025558545180360204, "seconds": 26.2}
+20:52:48 {"arm": "rp-fp8", "window": "conditional-fit-0123", "kld": 0.03150524957071333, "seconds": 26.2}
+20:53:14 {"arm": "rp-fp8", "window": "conditional-fit-0090", "kld": 0.03826285037394877, "seconds": 26.0}
+20:53:40 {"arm": "rp-fp8", "window": "conditional-fit-0062", "kld": 0.024102963619839234, "seconds": 26.1}
+20:54:06 {"arm": "rp-fp8", "window": "conditional-fit-0047", "kld": 0.019294545353876813, "seconds": 26.1}
+20:54:33 {"arm": "rp-fp8", "window": "conditional-fit-0051", "kld": 0.013305969406557438, "seconds": 26.2}
+20:54:59 {"arm": "rp-fp8", "window": "conditional-fit-0055", "kld": 0.02678087642302404, "seconds": 26.3}
+20:55:25 {"arm": "rp-fp8", "window": "conditional-fit-0031", "kld": 0.013762048591792605, "seconds": 26.4}
+20:55:52 {"arm": "rp-fp8", "window": "conditional-fit-0003", "kld": 0.023333638447614692, "seconds": 26.3}
+20:56:18 {"arm": "rp-fp8", "window": "conditional-fit-0009", "kld": 0.04291195421481693, "seconds": 26.1}
+20:56:44 {"arm": "rp-fp8", "window": "conditional-fit-0010", "kld": 0.01575712837935467, "seconds": 26.2}
+20:57:10 {"arm": "rp-fp8", "window": "conditional-fit-0011", "kld": 0.013203464337439741, "seconds": 26.2}
+20:57:36 {"arm": "rp-fp8", "window": "conditional-fit-0030", "kld": 0.022252707434683768, "seconds": 26.1}
+20:58:02 {"arm": "rp-fp8", "window": "conditional-fit-0032", "kld": 0.03334754407177507, "seconds": 25.8}
+20:58:28 {"arm": "rp-fp8", "window": "conditional-fit-0035", "kld": 0.028648007815007804, "seconds": 26.2}
+20:58:55 {"arm": "rp-fp8", "window": "conditional-fit-0040", "kld": 0.041695218309936055, "seconds": 26.2}
+20:59:21 {"arm": "rp-fp8", "window": "conditional-fit-0041", "kld": 0.0808548561449208, "seconds": 26.3}
+20:59:47 {"arm": "rp-fp8", "window": "conditional-fit-0046", "kld": 0.05531265463135438, "seconds": 26.0}
+21:00:13 {"arm": "rp-fp8", "window": "conditional-fit-0060", "kld": 0.016585415756665955, "seconds": 26.3}
+21:00:39 {"arm": "rp-fp8", "window": "conditional-fit-0063", "kld": 0.027347301390041618, "seconds": 26.3}
+21:01:06 {"arm": "rp-fp8", "window": "conditional-fit-0074", "kld": 0.041218075895033415, "seconds": 26.3}
+21:01:32 {"arm": "rp-fp8", "window": "conditional-fit-0099", "kld": 0.013976971777382777, "seconds": 26.3}
+21:02:19 {"arm": "rp-fp8", "window": "conditional-fit-0113", "kld": 0.051020885626532377, "seconds": 47.0}
+21:02:45 {"arm": "rp-fp8", "window": "conditional-fit-0118", "kld": 0.012911215617572936, "seconds": 25.9}
+21:02:47 KLD rp-fp8: complete
+21:02:47 {"schema": "p8-dx2-rp-kld-cf32-fp8kv.v1", "evidence": "development comparison on already-opened conditional-fit; FP8 MLA KV; one server per arm, fixed order control-fp8->rp-fp8; not final qualification", "rp_minus_control": -0.0002621541679687479, "paired_window_bca95": [-0.0011464539718331202, 0.001245696065212719], "relative_change": -0.008403499749204676, "rp_lower_windows": 19, "reading": "no detectable change", "control_vs_published_20260909": {"published_mean": 0.03194517316654619, "max_abs_window_diff": 0.014019421251409418, "identical_windows": 0}, "limits": ["MTP off, maxseq1 forced decode: every token uses the M1 direct path, where D-x2-RP is active.", "Prefill (M>16) is unchanged by design; the prefill row is excluded from the score.", "Fixed order, one server preparation per arm; window intervals do not capture server-run variability."]}
+21:02:47 speed rp-fp8: starting production-config server on :8038
+21:07:44 {"speed": "rp-fp8", "ctx": "0", "conc": "1", "rc": 0, "aggregate_tps": [192.9676145814267], "gate": {"waited_s": 77.1, "passed": true, "temps": ["47", "34", "36", "40"]}}
+21:10:05 {"speed": "rp-fp8", "ctx": "0", "conc": "4", "rc": 0, "aggregate_tps": [293.8385614823127], "gate": {"waited_s": 91.8, "passed": true, "temps": ["48", "34", "37", "39"]}}
+21:12:26 {"speed": "rp-fp8", "ctx": "8192", "conc": "1", "rc": 0, "aggregate_tps": [193.37335573459333], "gate": {"waited_s": 91.6, "passed": true, "temps": ["48", "34", "37", "39"]}}
+21:14:48 {"speed": "rp-fp8", "ctx": "8192", "conc": "4", "rc": 0, "aggregate_tps": [303.95601766882], "gate": {"waited_s": 92.1, "passed": true, "temps": ["48", "34", "37", "39"]}}
+21:14:50 speed rp-fp8: complete
+21:14:50 restoring production via systemctl --user start trellismx-klc.service (adopts the unchanged container)
+21:17:30 production restoration: healthy (service active)

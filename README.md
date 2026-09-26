@@ -3,16 +3,18 @@
 Brandon M. Music, September 2026
 
 This repository records a preregistered series of kernel and numerics tests on our
-TrellisMX r27 P8 kernels for GLM-5.3-Flash. The series runs from layer-level gates to an
-end-to-end true-decode KLD measurement taken in a production window. The repository contains:
+TrellisMX r27 P8 kernels for GLM-5.3-Flash. The series runs from layer-level gates to
+end-to-end true-decode KLD measurements taken in two production windows, one with NVFP4 MLA
+KV and one with FP8 MLA KV. The repository contains:
 - the preregistration (`PREREG.md`), with every amendment written before its numbers;
 - the running results log (`RESULTS.md`);
 - every script that produced a number;
 - the raw and analysed result files;
 - the b12x kernel patches.
 
-**Status (2026-09-25).** Tests A-C and Amendments 2-4 are complete. The FP8-KV production
-window (Amendment 5) and the FC1-input row-pack are in progress; see
+**Status (2026-09-25).** Tests A-C and Amendments 2-5 are complete, including the FP8-KV
+production window. The FC1-input row-pack (D-x2-RP2, gates in Amendment 6) is in progress,
+and a 128-window confirmation run is planned; see
 [In progress / pending](#in-progress--pending).
 
 ## Summary
@@ -25,6 +27,13 @@ window (Amendment 5) and the FC1-input row-pack are in progress; see
 | Down-hop-only remainder in a second data plane (D-x2) | K2 / A2 / B2 | Closure PASS. Timing FAIL: 1.071-1.079 at M4, 1.163-1.187 in prefill. Fresh-layer damage 0.744 (-25.6%), B2 PASS. |
 | Down-hop remainder packed into the idle MMA row +8 (D-x2-RP) | K3 / A3 | Closure PASS. Timing PASS: median ratio <= 1.0272 at M1 and M4. |
 | End-to-end true-decode KLD with NVFP4 MLA KV | Amendment 4 | control 0.0350129 vs rp 0.0330631: -0.00195 (-5.57%), paired BCa 95% [-0.005975, +0.000118]; rp lower in 19/32 windows. Preregistered reading: **no detectable change**. Decode speed was not slower. |
+| End-to-end true-decode KLD with FP8 MLA KV | Amendment 5 | control-fp8 0.0311958 vs rp-fp8 0.0309337: -0.00026 (-0.84%), paired BCa 95% [-0.001146, +0.001246]; rp lower in 19/32: **no detectable change**. FP8 vs NVFP4 KV for the control arm (cross-run): -10.9% [-0.00898, -0.00171], lower in 24/32. |
+
+**Reading.**
+- **FP8 MLA KV** is the one significant end-to-end gain in this series: about -11% KLD
+  against NVFP4 KV. It costs KV capacity: -35% tokens in the production profile.
+- **The row-packed remainder's end-to-end effect is small and not established.** It is
+  -5.6% under NVFP4 KV and -0.8% under FP8 KV, and both paired intervals cross 0.
 
 ## Background and motivation
 
@@ -114,6 +123,7 @@ was written before any number it governs and says what was already known at the 
 | Amendment 3 | 2026-09-23, before any D-x2-RP number | Row-packed down-hop remainder: closure (K3) and timing (A3). |
 | Amendment 4 | 2026-09-25, before any end-to-end number | Decode-scored KLD with the 09-09 reference protocol, plus descriptive speed, in an approved production window. |
 | Amendment 5 | 2026-09-25, before any number | FP8-KV window, then the FC1-input row-pack. |
+| Amendment 6 | 2026-09-25, before any D-x2-RP2 number | Gates for the both-hop row-pack (D-x2-RP2): closure (K4) and timing (A4). |
 
 Rules we kept:
 - **Fixed rules.** Decision thresholds and estimators are set in advance. Exploratory
@@ -134,7 +144,9 @@ Rules we kept:
 | K2 / K3 | Per layer and path: `abs(D_kernel(prod) / D_ref(P-A8) - 1) <= 5%`, and the arm/prod ratio within +/-0.05 of the reference down-only ratio. K3 also requires M64/M3072 outputs bit-identical to prod. |
 | A2 | Decode: median <= 1.03 at M1 and M4. Prefill: median <= 1.05 at M512 and M2048. |
 | A3 | Median <= 1.03 at M1 and M4 on both layers. |
-| Amendment 4 reading | Improvement if the paired mean < 0 and the CI excludes 0. No detectable change if the CI includes 0. Harm if the mean > 0 and the CI excludes 0. |
+| Amendments 4 and 5 reading | Improvement if the paired mean < 0 and the CI excludes 0. No detectable change if the CI includes 0. Harm if the mean > 0 and the CI excludes 0. |
+| K4 (Amendment 6) | As K3, with `D_kernel(RP2)/D_kernel(prod)` within +/-0.05 of the reference both-hop ratio `D(P-A8x2)/D(P-A8)`, and M64/M3072 bit-identical to prod. |
+| A4 (Amendment 6) | Median `RP2/prod` <= 1.03 at M1 and M4 on both layers. |
 
 ## Methods
 
@@ -226,7 +238,11 @@ Rules we kept:
   - Compile caches were off for every timing run: they key on the compile spec, not on the
     arm.
 
-### End-to-end KLD and speed (Amendment 4)
+### End-to-end KLD and speed (Amendments 4 and 5)
+
+Both production windows use the same protocol. Amendment 4 ran it with NVFP4 MLA KV and
+Amendment 5 with FP8 MLA KV. The description below is for Amendment 4; the differences for
+Amendment 5 are listed at the end of this section.
 
 - **Protocol.** The 09-09 reference protocol of the published TrellisMX reference KLD
   measurement, unchanged:
@@ -261,6 +277,18 @@ Rules we kept:
   - Cells: contexts 0 and 8192, concurrency 1 and 4, 30 s each, 2048 max tokens.
   - Before each cell: >= 90 s idle and all GPUs <= 55 C for 30 s.
   - One run per cell.
+- **Amendment 5 (FP8 MLA KV).**
+  - Both servers are launched with `KV_CACHE_DTYPE=fp8`. The arms run in fixed order:
+    `control-fp8`, then `rp-fp8`.
+  - The `rp-fp8` server logged 168 `P8_DX2_ROWPACK_ACTIVE` lines, and `control-fp8` logged 0.
+  - The primary is the paired `rp-fp8 - control-fp8`, with the same estimator.
+  - Speed was measured for `rp-fp8` only, with the same cells and cooling gate.
+  - KV capacity is read from each server's engine startup log.
+  - The window script (`scripts/window_fp8_20260925.py`) computes only the primary.
+  - The cross-run comparisons pair the same 32 windows, using the same estimator and seed.
+    They compare against the Amendment 4 arms and the published 09-09 values. Their inputs are
+    the per-window records in `results/kld-rp-20260925/analysis.json`,
+    `results/kld-fp8-20260925/analysis.json`, and the published 09-09 `comparison.json` files.
 
 ### Estimators and seeds
 
@@ -269,13 +297,12 @@ Rules we kept:
 | Test A, exploratory split, A2, A3 timing | percentile bootstrap of the median over blocks | 20,000 | 20260923 |
 | Tests B, C and B2 | paired window BCa with jackknife acceleration | 20,000 | 20260923 |
 | Test C random-sign arm | fixed random signs | n/a | 20260923 |
-| End-to-end KLD | `scipy.stats.bootstrap`, BCa | 20,000 | 20260902 |
+| End-to-end KLD, both windows, including cross-run comparisons | `scipy.stats.bootstrap`, BCa, over window-paired differences | 20,000 | 20260902 |
 
 ## Results
 
 Every number below comes from `RESULTS.md` or the files under `results/` and is copied at
-the source's precision. Two cells differ from `RESULTS.md` in the last digit; the JSON value
-is used there, with a footnote.
+the source's precision.
 
 ### Test A: zero-remainder timing (preregistered). FAIL
 
@@ -323,13 +350,11 @@ ratios similar to Test A's (`results/gpucheck_*.json`).
 | 18 | 4 | 1.21e-3 | 0.474 | 0.516 | 0.474 | 0.951 | 0.517 |
 | 23 | 4 | 1.74e-4 | 0.386 | 0.589 | 0.386 | 0.814 | 0.526 |
 | 33 | 5 | 1.92e-4 | 0.287 | 0.408 | 0.287 | 0.649 | 0.512 |
-| 43 | 5 | 3.58e-4 (a) | 0.553 | 0.444 | 0.554 | 0.950 | 0.613 |
+| 43 | 5 | 3.58e-4 | 0.553 | 0.444 | 0.554 | 0.950 | 0.613 |
 
 \* Arms added after Test A, reported only.
 - Pooled down-only: 0.606 [0.549, 0.673].
 - Pooled FC1-only: 0.863 [0.842, 0.909].
-
-(a) `results/analysis_BC.json` gives 3.5847e-4; `RESULTS.md` rounds it to 3.59e-4.
 
 **Per domain** (two-term ratio): general 0.596, legal 0.509, code/agentic 0.625,
 reasoning 0.403.
@@ -390,11 +415,9 @@ MMA), e.g. +15-16% at M512. The FC1 epilogue adds 0-3% (`results/dx2_split_timin
 | 6 | 4 | 0.939 | 0.865 | 0.14 |
 | 14 | 4 | 0.901 | 0.840 | 0.16 |
 | 26 | 4 | 0.896 | 0.851 | 0.15 |
-| 21 | 5 | 0.804 | 0.802 | 0.23 (b) |
+| 21 | 5 | 0.804 | 0.802 | 0.23 |
 | 34 | 5 | 0.747 | 0.719 | 0.29 |
 | 42 | 5 | 0.372 | 0.282 | 0.72 |
-
-(b) `results/analysis_amendment2.json` gives 0.2347; `RESULTS.md` rounds it to 0.24.
 
 The fresh-layer gain is smaller than on the Test B layers (post-hoc down-only 0.606): the K4
 layers with high weight error gain little.
@@ -436,14 +459,14 @@ windows.** The preregistered reading is **no detectable change**: the CI crosses
 Post-hoc, reported only (65,472 rows):
 - median row KL: -1.5%;
 - q90 / q99 / q99.9: -5% / -5% / -8%;
-- mean without the top 0.5% of rows: -4.0% (rows above the pooled 99.5th percentile of both
-  arms removed from both arms);
+- mean without the top 0.5% of rows: -4.0% (rows above the pooled q99.5 dropped from both
+  arms);
 - window medians: lower in 23/32.
 
 Context from the published 09-09 measurements. These comparisons are cross-run, so each
 carries server-run noise.
-- Today's control vs the published 09-09 control (0.0354562): -1.25% in the mean, and 3.2%
-  per-window SD.
+- The 09-25 control vs the published 09-09 control (0.0354562): -1.25% in the mean, and
+  3.2% per-window SD.
 - Paired against the published TR3 4bpw with the same NVFP4 KV (0.03048):
   - control: +0.00453 [+0.00029, +0.01032];
   - rp: +0.00258 [-0.00119, +0.00577].
@@ -466,18 +489,79 @@ RP is not slower. The C1 gains track higher MTP acceptance in these runs. That c
 from more BF16-like target logits or from different generated text; single runs cannot tell
 which.
 
+### Amendment 5: FP8 MLA KV window
+
+The second production window ran on 2026-09-25 from 20:29:49. Production was restored and
+verified healthy at 21:17:30 (`results/kld-fp8-20260925/window.log`, `restoration.json`).
+The protocol and windows are the same as Amendment 4, with `KV_CACHE_DTYPE=fp8`. The
+`control-fp8` server logged 0 RP markers and the `rp-fp8` server logged 168.
+
+| arm | mean true-decode KLD | window BCa95 |
+|---|---|---|
+| control-fp8 | 0.0311958 | [0.02643, 0.03776] |
+| rp-fp8 | 0.0309337 | [0.02617, 0.03750] |
+
+**rp-fp8 - control-fp8 = -0.00026 (-0.84%), paired BCa95 [-0.001146, +0.001246], lower in
+19/32: no detectable change** (`results/kld-fp8-20260925/analysis.json`).
+
+**Paired comparisons.** Each pairs the same 32 windows across two different server runs,
+some on a different day, so each carries about 1-2% server-run noise. The interval is for
+the per-window difference in true-decode KLD; the change is relative to the second arm's
+mean.
+
+| comparison | change | paired BCa95 | first arm lower in |
+|---|---|---|---|
+| FP8 KV vs NVFP4 KV, control (both 09-25) | -10.9% | [-0.00898, -0.00171] | 24/32 |
+| FP8 KV vs NVFP4 KV, rp (both 09-25) | -6.4% | [-0.00337, -0.00037] | 26/32 |
+| rp-fp8 vs control with NVFP4 KV (the production configuration, 09-25) | -11.7% | [-0.00892, -0.00212] | 26/32 |
+| rp-fp8 vs TR3 4bpw with NVFP4 KV (09-09) | +1.5% | [-0.00315, +0.00357] | 15/32 |
+| rp-fp8 vs TR3 4bpw with FP8 KV (09-09) | +9.7% | [-0.00132, +0.00640] | 13/32 |
+
+control-fp8 vs the published 09-09 TrellisMX FP8 control (0.0319452): -2.3% in the mean. The
+largest per-window difference is 0.014.
+
+**Reading.**
+- **FP8 KV is a real, significant improvement** (about -11%), matching the 09-09 measurement
+  (-0.0035).
+- **The row-packed remainder is not established end to end.** It shows -5.6% under NVFP4 KV
+  but -0.8% under FP8 KV. Both paired intervals cross 0, so its end-to-end effect is small
+  (plausibly 0-6%) and not established on 32 windows.
+
+**FP8-KV speed.** `rp-fp8` only, with the same production config, cooling gate and single-run
+caveats as Amendment 4. The NVFP4-KV runs from the earlier window are shown alongside
+(`results/kld-fp8-20260925/speed/`).
+
+| cell | control NVFP4 | rp NVFP4 | rp FP8 | rp FP8 MTP accept |
+|---|---|---|---|---|
+| C1 0K | 184.3 | 191.1 | 193.0 | 0.528 |
+| C4 0K | 300.1 | 301.2 | 293.8 | 0.589 |
+| C1 8K | 184.1 | 193.9 | 193.4 | 0.487 |
+| C4 8K | 300.7 | 299.0 | 304.0 | 0.613 |
+
+**KV capacity**, from each server's engine startup log:
+- Production profile (GMU 0.88, 48 seqs): NVFP4 12,581,699 tokens; FP8 8,127,659 tokens
+  (-35%).
+- Capture profile (GMU 0.97, 1 seq): NVFP4 31,565,217 tokens; FP8 19,362,962 tokens.
+
+The engine logs are not included here. The FP8 capture-profile figure is also recorded in
+`results/kld-fp8-20260925/*/runtime-audit.json`.
+
 ## Limitations
 
 - **Development data, not qualification.** Earlier development measurements had already
   opened the 32 conditional-fit windows. This is not a measurement on untouched final
   windows, and not an independent reproduction.
-- **One server run per arm.** Each arm got one server preparation, in fixed order, so the
-  window intervals do not capture server-run variability.
-  - The only direct estimate of that noise: today's control vs the published 09-09 control,
-    -1.25% in the mean and 3.2% per-window SD.
-  - Every cross-run comparison (vs TR3, vs 09-09 FP8 KV) carries this noise.
-- **Heavy-tailed KLD.** The top 1% of rows carry 31% of the mean. The paired interval's
-  upper end is +0.000118, so a handful of rows could move the reading either way.
+- **One server run per arm.** In both windows each arm got one server preparation, in fixed
+  order, so the window intervals do not capture server-run variability.
+  - The direct estimates of that noise:
+    - the 09-25 NVFP4-KV control vs the published 09-09 control: -1.25% in the mean and 3.2%
+      per-window SD;
+    - control-fp8 vs the published 09-09 FP8 control: -2.3% in the mean.
+  - Every cross-run comparison carries this noise: FP8 vs NVFP4 KV across the two windows,
+    against TR3, and against the 09-09 values.
+- **Heavy-tailed KLD.** In the NVFP4-KV window, the top 1% of rows carry 31% of the mean.
+  That window's paired interval ends at +0.000118, so a handful of rows could move the
+  reading either way.
 - **Layer-level proxies are not KLD.**
   - Tests B and B2 measure single-layer routed-output damage against BF16 experts on 3,072
     tokens per layer, not model output.
@@ -495,38 +579,37 @@ which.
 
 ## In progress / pending
 
-The status below is as of 2026-09-25. Results will be added here and in `RESULTS.md`.
+The status below is as of 2026-09-25. New results will be added here and in `RESULTS.md`.
 
-### FP8-KV production window (Amendment 5): in progress
+### FP8-KV production window (Amendment 5): done
 
-- **Protocol.** The same 09-09 KLD protocol, windows and scoring as Amendment 4, with
-  `KV_CACHE_DTYPE=fp8`.
-- **Arms.** Fixed order: `control-fp8` (production kernels), then `rp-fp8` (D-x2-RP).
-- **Primary.** Paired `rp-fp8 - control-fp8`, BCa95 (20,000 resamples, seed 20260902).
-- **Also reported.** These are cross-run comparisons, each carrying about 1.3% server-run
-  noise:
-  - `rp-fp8` vs TR3 with FP8 KV (0.0281899);
-  - `rp-fp8` vs today's `rp` with NVFP4 KV (0.0330631);
-  - `control-fp8` vs the 09-09 TrellisMX FP8 value (0.0319452);
-  - KV capacity from each server's startup log.
-- **Speed.** `rp-fp8` only, same four cells and cooling gate.
-- **Harness.** `scripts/window_fp8_20260925.py`.
-- **Results.** Pending.
+Results are under [Amendment 5](#amendment-5-fp8-mla-kv-window) above and in
+`results/kld-fp8-20260925/`.
 
 ### FC1-input row-pack (D-x2-RP2): in progress
 
 - **Design.** The same spare-row trick on the input hop of the direct decode paths.
-  - `x_lo = q(x - dq(x_hi))` feeds MMA rows q+8 in place of FC1's broadcast duplicate, with
-    the odd-lane A scales.
-  - The FC1 epilogue folds the row-8 accumulators into row 0 before the pair-scale / H128 /
-    SwiGLU boundary.
-- **Gates, as before.**
-  - Closure against the reference both-hop `P-A8x2`.
-  - Timing <= 1.03 at M1 and M4.
-  - Then an end-to-end remeasure.
-- **Preregistration.** The detailed closure and timing gates were preregistered as a
-  further amendment before any RP2 number existed. That amendment, the builder changes and
-  the RP2 kernel patch will be added with the results.
+  - `x_lo = q(x - dq(x_hi))` goes into token row +16. FC1 stages it into A row 8 and feeds
+    it as MMA rows q+8, in place of the broadcast duplicate, with the odd-lane A scales.
+  - The FC1 epilogue folds the row q+8 accumulators into row q before the FP16 store,
+    ahead of the pair-scale / H128 / SwiGLU boundary.
+  - M > 16 paths are unchanged.
+- **Gates.** Preregistered in Amendment 6 before any RP2 number:
+  - K4 closure against the reference both-hop `P-A8x2` ratio (layer 3 = 0.549, layer 8 =
+    0.869);
+  - A4 timing, with a median `RP2/prod` <= 1.03 at M1 and M4;
+  - if both pass, an end-to-end measurement, whose design will be preregistered separately.
+- **Code.** The RP2-capable builder extension and the RP2 kernel patch will be published
+  with its results. The builder and patches in this repository are the versions that
+  produced the measured trees.
+- **Results.** Pending.
+
+### Planned: 128-window conditional-fit confirmation run
+
+- **Windows.** All 128 conditional-fit windows; the 32 windows used above are a subset.
+- **Teacher.** Teacher logits from the same Hugging Face dataset revision
+  (`7c378d5f17dba158c4c803eff27c346dd0615660`).
+- **Comparator.** A paired TR3 4bpw re-capture on the same windows.
 - **Results.** Pending.
 
 ## Reproduction
@@ -569,11 +652,12 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
    - `A2_ARM=rp A2_MS=1,4,16 A2_OUT=/work/results/a3_timing_raw.json scripts/run_a2.sh`
    - `scripts/run_testB2.py`
    - `python3 scripts/analyze_B2_A2.py`
-6. **End-to-end KLD.** `scripts/window_nvfp4_20260925.py`.
-   - It needs the 09-09 reference launch arguments and a capture-only derivative of the
+6. **End-to-end KLD.** `scripts/window_nvfp4_20260925.py` (Amendment 4) and
+   `scripts/window_fp8_20260925.py` (Amendment 5).
+   - They need the 09-09 reference launch arguments and a capture-only derivative of the
      serving image.
-   - It also operates our production host (systemd user unit, locks, ports). Treat it as a
-     record of the procedure and adapt it before use.
+   - They also operate our production host (systemd user unit, locks, ports). Treat them as a
+     record of the procedure and adapt them before use.
 
 ### Re-deriving the reported numbers (no GPU)
 
@@ -581,12 +665,15 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
   `analyze_BC.py` and `analyze_B2_A2.py` regenerate `timing_analysis.json`,
   `timing_split_analysis.json`, `analysis_BC.json` and `analysis_amendment2.json` exactly
   from the raw files in `results/`.
-- **KLD.** The per-window score records (`scores/*.json`) and per-row scores (`scores/*.npz`)
-  are included. The `.npz` files hold row KL, teacher entropy, top-1 tokens and
-  probabilities, and realized-token log-probabilities.
-  - The intervals in `analysis.json` are `scipy.stats.bootstrap` BCa over the per-window
-    `true_decode_mean_kld` values.
+- **KLD.** Both windows (`results/kld-rp-20260925/`, `results/kld-fp8-20260925/`) include the
+  per-window score records (`scores/*.json`) and per-row scores (`scores/*.npz`). The `.npz`
+  files hold row KL, teacher entropy, top-1 tokens and probabilities, and realized-token
+  log-probabilities.
+  - The intervals in each `analysis.json` are `scipy.stats.bootstrap` BCa over the
+    per-window `true_decode_mean_kld` values.
   - Each `true_decode_mean_kld` is the mean of `kld[1:]` in the matching `.npz`.
+  - The cross-run comparisons use the same estimator on window-paired differences between
+    these files and the published 09-09 `comparison.json` files.
 
 **Not included:** `.pt` tensors (K2 inputs and outputs, Test C mirror tensors), raw logits
 (retired after hashing and scoring), request/response captures, server and startup logs,
@@ -698,7 +785,7 @@ libraries keep their own licenses.
 
 ```
 README.md                 this write-up
-PREREG.md                 preregistration and Amendments 1-5
+PREREG.md                 preregistration and Amendments 1-6
 RESULTS.md                results log, written as results came in
 LICENSE                   ShapleyMCG License 1.0
 scripts/                  every script that produced a number (see scripts/README.md)
@@ -720,5 +807,10 @@ results/
     verified-inputs.json                                 window list, teacher revision, input hashes
     control/, rp/                                        runtime audits, per-window scores (.json, .npz)
     speed/                                               benchmark outputs and launch arguments
+    window.log, execution-final.json, restoration.json   window log and production restoration record
+  kld-fp8-20260925/                                    Amendment 5 production window (FP8 MLA KV):
+    analysis.json, verified-inputs.json                  KLD analysis, window list and input hashes
+    control-fp8/, rp-fp8/                                runtime audits (with KV capacity), per-window scores
+    speed/rp-fp8/                                        benchmark outputs and launch arguments
     window.log, execution-final.json, restoration.json   window log and production restoration record
 ```

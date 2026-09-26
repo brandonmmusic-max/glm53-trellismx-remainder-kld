@@ -9,7 +9,7 @@ are byte-identical to the same paths at commit
 | Patch | Tree it produces | Used by | Files |
 |---|---|---|---|
 | `b12x-zero-remainder.diff` | `b12x-scratch` | Test A (zero-remainder timing arm) and the exploratory FC1/FC2 split | 5 modified |
-| `b12x-dx2-rowpack.diff` | `b12x-dx2` | Amendment 2 (plane-based D-x2: K2, A2, exploratory split) and Amendments 3-4 (row-packed D-x2-RP: K3, A3 and the production-window `rp` arm) | 15 modified, 1 new (`p8_down_remainder.py`) |
+| `b12x-dx2-rowpack.diff` | `b12x-dx2` | Amendment 2 (plane-based D-x2: K2, A2, exploratory split) and Amendments 3-5 (row-packed D-x2-RP: K3, A3, and the `rp` and `rp-fp8` production-window arms) | 15 modified, 1 new (`p8_down_remainder.py`) |
 
 Apply from the root of the extracted b12x tree:
 
@@ -29,6 +29,14 @@ script. Every text replacement is counted, and a build aborts if the source does
 We checked both routes:
 - running the builders on the image tree reproduces the measured trees file for file;
 - applying these patches to a clean copy of the image tree does the same.
+
+The `b12x-dx2` tree was built once, before either production window. Both the `rp`
+(NVFP4 KV) and `rp-fp8` (FP8 KV) arms mounted it unchanged.
+
+An RP2-capable builder is in progress. It extends `build_dx2_b12x.py` with the both-hop
+row-pack (D-x2-RP2), whose gates are preregistered in Amendment 6. It is not included here.
+That builder and its patch will be published with the RP2 results. The builder and patches
+in this repository are the versions that produced the measured trees.
 
 ## Gating
 
