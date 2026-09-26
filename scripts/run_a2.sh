@@ -17,7 +17,7 @@ exec docker run --rm --name p8-dx2-a2-20260923 --gpus "\"device=${GPU}\"" --netw
   -e ZR_LAYERS="${ZR_LAYERS:-8,3}" -e ZR_MS="${ZR_MS:-1,4,16}" -e ZR_BLOCKS="${ZR_BLOCKS:-40}" \
   -e ZR_REPLAYS="${ZR_REPLAYS:-200}" -e ZR_INPUT_SETS="${ZR_INPUT_SETS:-4}" \
   -e A2_MS="${A2_MS:-1,4,16,64,512,2048}" -e A2_LAYERS="${A2_LAYERS:-8,3}" -e A2_BLOCKS="${A2_BLOCKS:-60}" -e A2_REPLAYS="${A2_REPLAYS:-200}" -e A2_ARM="${A2_ARM:-1}" -e A2_OUT="${A2_OUT:-/work/results/a2_timing_raw.json}" -e ZR_OUT="${ZR_OUT:-/work/results/timing_raw.json}" \
-  -v "$HERE/b12x-dx2:/opt/glm53-flash/b12x:ro" \
+  -v "$HERE/${B12X_TREE:-b12x-dx2}:/opt/glm53-flash/b12x:ro" \
   -v <model-volume>/glm53-trellismx-native6/trellismx-r27-local-checkpoint-v1:/checkpoint:ro \
   -v <data-volume>:<data-volume>:ro \
   -v "$HERE:/work" \

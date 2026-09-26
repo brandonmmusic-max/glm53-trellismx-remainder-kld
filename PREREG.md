@@ -349,3 +349,43 @@ M>16 paths are unchanged.
 **Next step.** If K4 and A4 pass, RP2 goes to the end-to-end measurement. Its design (window
 count, arms, KV dtype) will be preregistered in a separate amendment after Window 2's FP8
 results are in.
+
+## Amendment 7 (2026-09-25 ~22:00, before any 128-window number): final 128-window run
+
+**Gates.** K4 and A4 passed, so RP2 is the candidate.
+
+**Windows.**
+- All 128 conditional-fit windows, from `kld-cf128/verified-inputs.json`:
+  - the original 32 keep their records and order;
+  - 96 are scored here for the first time;
+  - teacher logits come from HF revision 7c378d5f, and all 128 sha256 were verified.
+- The 09-09 true-decode protocol and scorer are unchanged. The capture allow-list is widened
+  to the 128 IDs.
+- Fixed arm order, one fresh server each, all with FP8 MLA KV (the better cache for both
+  systems):
+  1. `control-fp8`: production P8 kernels.
+  2. `rp2-fp8`: D-x2-RP2 (`b12x-dx2rp2`, `B12X_P8_DOWN_REMAINDER=rp2`, RP JIT volume).
+     The log must show 168 `P8_DX2_ROWPACK_ACTIVE ... input_hop=1` lines.
+  3. `tr3-fp8`: TR3 4bpw (`brandonmusic/GLM-5.3-Flash-tr3-4bpw` @ aba59d21), with the
+     09-09 attempt-2 TR3 capture launch unchanged apart from the allow-list and capture dir.
+
+**Primaries**, each a paired per-window difference in true-decode mean KLD with BCa95
+(20,000 resamples, seed 20260902):
+1. `rp2-fp8 - control-fp8`: improvement if the mean < 0 and the CI excludes 0.
+2. `rp2-fp8 - tr3-fp8`, reported three ways:
+   - (a) whether the CI includes 0 (not distinguishable);
+   - (b) whether the whole CI lies within +/-5% of TR3's mean (equivalent at 5%);
+   - (c) the same at +/-10%.
+
+**Reported:**
+- `control-fp8 - tr3-fp8`;
+- per-arm means and window BCa;
+- the fraction of windows lower;
+- the original-32 subset compared with the earlier runs;
+- per-domain means.
+
+**Speed** (descriptive): an `rp2-fp8` production-config speed arm, same four cells and
+cooling gate, compared with today's runs.
+
+**Close:** production is restored via `systemctl --user start trellismx-klc.service` and
+must finish before the 02:30 nightly job.

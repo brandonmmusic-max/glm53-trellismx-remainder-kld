@@ -1,0 +1,90 @@
+{
+ "raw": "a4_timing_raw.json",
+ "ratio": "RP2/prod",
+ "gpu": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+ "blocks_per_input_set": 60,
+ "replays_per_block": 200,
+ "estimator": "median of paired per-block ratios; percentile bootstrap of the median over blocks, 20000 resamples, seed 20260923, one generator in file order (layers as stored, M ascending)",
+ "rows": [
+  {
+   "layer": 8,
+   "bits": 4,
+   "m": 1,
+   "blocks": 240,
+   "prod_us_median": 77.8607988357544,
+   "arm_us_median": 79.90943908691406,
+   "ratio_median": 1.0263215674409305,
+   "ratio_ci95": [
+    1.0263029360637996,
+    1.0263398443361402
+   ]
+  },
+  {
+   "layer": 8,
+   "bits": 4,
+   "m": 4,
+   "blocks": 240,
+   "prod_us_median": 102.16304302215576,
+   "arm_us_median": 103.33040237426758,
+   "ratio_median": 1.006446647972974,
+   "ratio_ci95": [
+    1.0008592405479635,
+    1.012805769746734
+   ]
+  },
+  {
+   "layer": 8,
+   "bits": 4,
+   "m": 16,
+   "blocks": 240,
+   "prod_us_median": 401.93201065063477,
+   "arm_us_median": 377.71631240844727,
+   "ratio_median": 0.9405054907000826,
+   "ratio_ci95": [
+    0.9402016264702786,
+    0.9407164353649228
+   ]
+  },
+  {
+   "layer": 3,
+   "bits": 5,
+   "m": 1,
+   "blocks": 240,
+   "prod_us_median": 81.78256034851074,
+   "arm_us_median": 84.00511741638184,
+   "ratio_median": 1.027250913596027,
+   "ratio_ci95": [
+    1.027146886732433,
+    1.0273428700395244
+   ]
+  },
+  {
+   "layer": 3,
+   "bits": 5,
+   "m": 4,
+   "blocks": 240,
+   "prod_us_median": 128.98655891418457,
+   "arm_us_median": 127.0904016494751,
+   "ratio_median": 0.9879432233952674,
+   "ratio_ci95": [
+    0.9842666340813773,
+    0.991666080929259
+   ]
+  },
+  {
+   "layer": 3,
+   "bits": 5,
+   "m": 16,
+   "blocks": 240,
+   "prod_us_median": 453.0816841125488,
+   "arm_us_median": 454.3231964111328,
+   "ratio_median": 1.0024318035217767,
+   "ratio_ci95": [
+    1.0022396847377555,
+    1.0026363710820885
+   ]
+  }
+ ],
+ "decision_rule": "PASS iff the median ratio <= 1.03 at M1 and M4 on both layers",
+ "decision": "PASS"
+}

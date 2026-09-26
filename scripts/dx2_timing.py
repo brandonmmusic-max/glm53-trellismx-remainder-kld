@@ -60,7 +60,7 @@ def main() -> None:
     for layer in LAYERS:
         prod = make_runtime(overlay, layer, False)
         dx2 = make_runtime(overlay, layer, True)
-        flag = "p8_dx2_rowpack" if ARM_ENV == "rp" else "p8_down_remainder"
+        flag = {"rp": "p8_dx2_rowpack", "rp2": "p8_input_rowpack"}.get(ARM_ENV, "p8_down_remainder")
         if not (getattr(dx2, flag) and not getattr(prod, flag)):
             raise RuntimeError("arm flags wrong")
         cells = []

@@ -12,9 +12,9 @@ KV and one with FP8 MLA KV. The repository contains:
 - the raw and analysed result files;
 - the b12x kernel patches.
 
-**Status (2026-09-25).** Tests A-C and Amendments 2-5 are complete, including the FP8-KV
-production window. The FC1-input row-pack (D-x2-RP2, gates in Amendment 6) is in progress,
-and a 128-window confirmation run is planned; see
+**Status (2026-09-25).** Tests A-C and Amendments 2-6 are complete. That covers the FP8-KV
+production window and the gates for the both-hop row-pack D-x2-RP2, both of which passed. The
+final 128-window run (Amendment 7) is running; see
 [In progress / pending](#in-progress--pending).
 
 ## Summary
@@ -26,6 +26,7 @@ and a 128-window confirmation run is planned; see
 | Does a fixed H512 rotation before the NVFP4 MLA latent record reduce error? | C: 6 MLA layers | **No (FAIL).** Pooled ratio 1.0011 for latent NMSE and 1.0055 for attention-logit error. |
 | Down-hop-only remainder in a second data plane (D-x2) | K2 / A2 / B2 | Closure PASS. Timing FAIL: 1.071-1.079 at M4, 1.163-1.187 in prefill. Fresh-layer damage 0.744 (-25.6%), B2 PASS. |
 | Down-hop remainder packed into the idle MMA row +8 (D-x2-RP) | K3 / A3 | Closure PASS. Timing PASS: median ratio <= 1.0272 at M1 and M4. |
+| Row-packed remainder at both hops (D-x2-RP2) | K4 / A4 | Closure PASS. Timing PASS: median ratio <= 1.0273 at M1 and M4. |
 | End-to-end true-decode KLD with NVFP4 MLA KV | Amendment 4 | control 0.0350129 vs rp 0.0330631: -0.00195 (-5.57%), paired BCa 95% [-0.005975, +0.000118]; rp lower in 19/32 windows. Preregistered reading: **no detectable change**. Decode speed was not slower. |
 | End-to-end true-decode KLD with FP8 MLA KV | Amendment 5 | control-fp8 0.0311958 vs rp-fp8 0.0309337: -0.00026 (-0.84%), paired BCa 95% [-0.001146, +0.001246]; rp lower in 19/32: **no detectable change**. FP8 vs NVFP4 KV for the control arm (cross-run): -10.9% [-0.00898, -0.00171], lower in 24/32. |
 
@@ -124,6 +125,7 @@ was written before any number it governs and says what was already known at the 
 | Amendment 4 | 2026-09-25, before any end-to-end number | Decode-scored KLD with the 09-09 reference protocol, plus descriptive speed, in an approved production window. |
 | Amendment 5 | 2026-09-25, before any number | FP8-KV window, then the FC1-input row-pack. |
 | Amendment 6 | 2026-09-25, before any D-x2-RP2 number | Gates for the both-hop row-pack (D-x2-RP2): closure (K4) and timing (A4). |
+| Amendment 7 | 2026-09-25, before any 128-window number | Final run on all 128 conditional-fit windows with FP8 MLA KV. Arms: `control-fp8`, `rp2-fp8` and `tr3-fp8` (TR3 4bpw). Primaries are `rp2 - control` and `rp2 - TR3`. There is also an `rp2-fp8` speed arm. |
 
 Rules we kept:
 - **Fixed rules.** Decision thresholds and estimators are set in advance. Exploratory
@@ -131,9 +133,13 @@ Rules we kept:
   and down-only arms were added after Test A and are reported only.
 - **A preregistered FAIL stops its direction.** Test A's FAIL stopped the two-hop design
   whatever Test B showed. Work on the down hop restarted under Amendment 2, on fresh data.
-- **Protected data roles.** The layer tests read only the roles-v3 `fit` windows. The KLD
-  runs use 32 `conditional-fit` windows that earlier development measurements had already
-  opened. Selection, confirmation and final windows stay unopened.
+- **Protected data roles.**
+  - The layer tests read only the roles-v3 `fit` windows.
+  - The KLD runs in Amendments 4 and 5 use 32 `conditional-fit` windows that earlier
+    development measurements had already opened.
+  - Amendment 7 widens this to all 128 conditional-fit windows; 96 of them are scored for the
+    first time.
+  - Selection, confirmation and final windows stay unopened.
 
 | Gate | PASS requires |
 |---|---|
@@ -147,6 +153,7 @@ Rules we kept:
 | Amendments 4 and 5 reading | Improvement if the paired mean < 0 and the CI excludes 0. No detectable change if the CI includes 0. Harm if the mean > 0 and the CI excludes 0. |
 | K4 (Amendment 6) | As K3, with `D_kernel(RP2)/D_kernel(prod)` within +/-0.05 of the reference both-hop ratio `D(P-A8x2)/D(P-A8)`, and M64/M3072 bit-identical to prod. |
 | A4 (Amendment 6) | Median `RP2/prod` <= 1.03 at M1 and M4 on both layers. |
+| Amendment 7 primaries | (1) `rp2-fp8 - control-fp8`: improvement if the mean < 0 and the CI excludes 0. (2) `rp2-fp8 - tr3-fp8`, reported three ways: whether the CI includes 0, whether the whole CI lies within +/-5% of TR3's mean, and the same at +/-10%. |
 
 ## Methods
 
@@ -218,7 +225,10 @@ Rules we kept:
   `sum (q_abs . (c_hat - c))^2 / sum (q_abs . c)^2`. Both use the same paired window BCa as
   Test B.
 
-### Real-kernel closure and timing (K2, K3, Test A, A2, A3)
+### Real-kernel closure and timing (Test A, K2-K4, A2-A4)
+
+K4 and A4 (Amendment 6) use the same harnesses as K3 and A3. The differences are the RP2
+tree (`b12x-dx2rp2`, via `B12X_TREE`) and the `rp2` arm (`B12X_P8_DOWN_REMAINDER=rp2`).
 
 - **Closure** (`scripts/dx2_closure.py`). Layers 3 (K5) and 8 (K4).
   - All four TP4 rank sidecars run one at a time, and their outputs are summed, which is
@@ -294,7 +304,7 @@ Amendment 5 are listed at the end of this section.
 
 | Analysis | Estimator | Resamples | Seed |
 |---|---|---|---|
-| Test A, exploratory split, A2, A3 timing | percentile bootstrap of the median over blocks | 20,000 | 20260923 |
+| Test A, exploratory split, A2, A3 and A4 timing | percentile bootstrap of the median over blocks | 20,000 | 20260923 |
 | Tests B, C and B2 | paired window BCa with jackknife acceleration | 20,000 | 20260923 |
 | Test C random-sign arm | fixed random signs | n/a | 20260923 |
 | End-to-end KLD, both windows, including cross-run comparisons | `scipy.stats.bootstrap`, BCa, over window-paired differences | 20,000 | 20260902 |
@@ -546,6 +556,53 @@ caveats as Amendment 4. The NVFP4-KV runs from the earlier window are shown alon
 The engine logs are not included here. The FP8 capture-profile figure is also recorded in
 `results/kld-fp8-20260925/*/runtime-audit.json`.
 
+### Amendment 6: both-hop row-pack (D-x2-RP2)
+
+**Design.** RP2 is RP plus the same spare-row trick on the FC1 input hop of the direct decode
+paths. All the new code sits behind `p8_input_rowpack`:
+- the input prologue writes `x_lo = q(x - dq(x_hi))`, with its own UE8M0 byte, into token
+  row +16;
+- FC1 stages it into A row 8, with its scale word in SFA row 8;
+- the MMA reads A rows q+8 from row 8, with the odd-lane scales from row 8, in place of the
+  broadcast duplicate;
+- the FC1 epilogue folds the row q+8 accumulators into row q before the FP16 store.
+
+Paths with M > 16 are unchanged. RP2 is switched on by `B12X_P8_DOWN_REMAINDER=rp2` when the
+MoE runtime is constructed. The tree is `b12x-dx2rp2` (`patches/b12x-dx2-rowpack-rp2.diff`,
+`scripts/build_dx2_rp2_b12x.py`).
+
+**Smoke test** (layer 8, rank 0):
+- deterministic and finite;
+- at M1/M4/M16, RP2 differs from prod by 3.7-3.9% and from RP by 2.7-2.8%;
+- at M64/M512, bit-identical to prod.
+
+**K4 closure: PASS.** Four ranks summed, Test B fit tokens (`results/k2/closure-rp2.json`;
+reference values from `results/testB/`).
+
+| layer | path | D_kernel(prod)/D_ref(P-A8) | RP2/prod (kernel) | reference both-hops P-A8x2/P-A8 |
+|---|---|---|---|---|
+| 3 | M1 (96 tok) | 1.0025 | 0.2531 | 0.2514 |
+| 3 | M16 | 1.0015 | 0.5494 | 0.5486 |
+| 8 | M1 (96 tok) | 1.0008 | 0.5154 | 0.5150 |
+| 8 | M16 | 1.0003 | 0.8689 | 0.8689 |
+
+M64 and M3072 outputs are bit-identical to prod on both layers.
+
+**A4 timing: PASS.** RP2/prod medians over 240 blocks. They come from
+`results/a4_timing_summary.json`, computed from `results/a4_timing_raw.json` with the A2/A3
+estimator.
+
+| layer | M1 | M4 | M16 |
+|---|---|---|---|
+| 8 K4 | 1.0263 | 1.0064 [1.0009, 1.0128] | 0.9405 |
+| 3 K5 | 1.0273 | 0.9879 [0.9843, 0.9917] | 1.0024 |
+
+The input-hop row-pack adds essentially no cost on top of the down-hop RP. On the fresh B2
+layers, the layer-level both-hop damage (reference `P-A8x2`) has a geometric mean of about
+0.68 (-32%), against 0.744 for down-only.
+
+K4 and A4 both passed, so RP2 is the candidate for the final 128-window run (Amendment 7).
+
 ## Limitations
 
 - **Development data, not qualification.** Earlier development measurements had already
@@ -573,8 +630,8 @@ The engine logs are not included here. The FP8 capture-profile figure is also re
   - Closure and timing cover two layers (3 and 8).
   - The zero-remainder arm is a lower bound on a real remainder's cost.
   - Test A ran on a clock-pinned GPU (see the side finding above).
-- **Decode only.** D-x2-RP changes only the M <= 16 direct paths. Prefill is unchanged and
-  excluded from the score.
+- **Decode only.** D-x2-RP and D-x2-RP2 change only the M <= 16 direct paths. Prefill is
+  unchanged and excluded from the score.
 - **Speed.** One run per cell, descriptive only; the MTP-acceptance explanation above is open.
 
 ## In progress / pending
@@ -586,31 +643,31 @@ The status below is as of 2026-09-25. New results will be added here and in `RES
 Results are under [Amendment 5](#amendment-5-fp8-mla-kv-window) above and in
 `results/kld-fp8-20260925/`.
 
-### FC1-input row-pack (D-x2-RP2): in progress
+### FC1-input row-pack (D-x2-RP2) gates (Amendment 6): done, PASS
 
-- **Design.** The same spare-row trick on the input hop of the direct decode paths.
-  - `x_lo = q(x - dq(x_hi))` goes into token row +16. FC1 stages it into A row 8 and feeds
-    it as MMA rows q+8, in place of the broadcast duplicate, with the odd-lane A scales.
-  - The FC1 epilogue folds the row q+8 accumulators into row q before the FP16 store,
-    ahead of the pair-scale / H128 / SwiGLU boundary.
-  - M > 16 paths are unchanged.
-- **Gates.** Preregistered in Amendment 6 before any RP2 number:
-  - K4 closure against the reference both-hop `P-A8x2` ratio (layer 3 = 0.549, layer 8 =
-    0.869);
-  - A4 timing, with a median `RP2/prod` <= 1.03 at M1 and M4;
-  - if both pass, an end-to-end measurement, whose design will be preregistered separately.
-- **Code.** The RP2-capable builder extension and the RP2 kernel patch will be published
-  with its results. The builder and patches in this repository are the versions that
-  produced the measured trees.
-- **Results.** Pending.
+K4 closure and A4 timing both passed. Results are under
+[Amendment 6](#amendment-6-both-hop-row-pack-d-x2-rp2) above. The RP2 builder
+(`scripts/build_dx2_rp2_b12x.py`) and patch (`patches/b12x-dx2-rowpack-rp2.diff`) are
+included.
 
-### Planned: 128-window conditional-fit confirmation run
+### Final 128-window run (Amendment 7): running
 
-- **Windows.** All 128 conditional-fit windows; the 32 windows used above are a subset.
-- **Teacher.** Teacher logits from the same Hugging Face dataset revision
-  (`7c378d5f17dba158c4c803eff27c346dd0615660`).
-- **Comparator.** A paired TR3 4bpw re-capture on the same windows.
-- **Results.** Pending.
+- **Windows.** All 128 conditional-fit windows (`results/kld-cf128/verified-inputs.json`):
+  - the original 32 keep their records and order;
+  - the other 96 are scored for the first time;
+  - the teacher logits come from the same Hugging Face dataset revision
+    (`7c378d5f17dba158c4c803eff27c346dd0615660`), with every file's sha256 verified.
+- **Arms.** Fixed order, one fresh server each, all with FP8 MLA KV:
+  1. `control-fp8`: production P8 kernels.
+  2. `rp2-fp8`: D-x2-RP2.
+  3. `tr3-fp8`: a paired TR3 4bpw re-capture on the same windows.
+
+  An `rp2-fp8` production-config speed arm follows.
+- **Protocol.** The 09-09 true-decode protocol and scorer, unchanged. The capture allow-list
+  is widened to the 128 window IDs.
+- **Primaries.** Given in the gate table above.
+- **Harness.** `scripts/window_cf128_20260925.py`.
+- **Results.** Pending; they will be added next.
 
 ## Reproduction
 
@@ -632,6 +689,15 @@ Public identifiers are under [Sources](#sources).
     fit windows only; `scripts/fetch_fit_capture.py` fetches them by byte range);
   - the conditional-fit revision, for teacher logits and token arrays.
 - **Campaign repository**, at the cited commit, for the `glm53_nvfp4` modules.
+- **TR3 comparator (Amendment 7 only).**
+  - The TR3 4bpw checkpoint at the cited revision.
+  - The TR3 capture image `local/tr3-r10:cf32-process-cache-20260909` (image id
+    `sha256:62e069faf47f2d42eae5f2c1677f8730a2f3f93d576301fe1bcc7e55f2fdb673`). This is a
+    local build, not a published image; it is the same image that produced the published
+    09-09 TR3 comparison.
+  - The TR3 arm reuses that comparison's attempt-2 FP8 capture launch unchanged, apart from
+    the window allow-list and the capture directory: TP4 with expert parallelism, DCP4, FP8
+    KV, one sequence, 4096 batched tokens, GPU memory utilization 0.97.
 
 Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-volume>`,
 `<model-volume>`); see `scripts/README.md`.
@@ -652,12 +718,22 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
    - `A2_ARM=rp A2_MS=1,4,16 A2_OUT=/work/results/a3_timing_raw.json scripts/run_a2.sh`
    - `scripts/run_testB2.py`
    - `python3 scripts/analyze_B2_A2.py`
-6. **End-to-end KLD.** `scripts/window_nvfp4_20260925.py` (Amendment 4) and
-   `scripts/window_fp8_20260925.py` (Amendment 5).
-   - They need the 09-09 reference launch arguments and a capture-only derivative of the
-     serving image.
-   - They also operate our production host (systemd user unit, locks, ports). Treat them as a
-     record of the procedure and adapt them before use.
+6. **RP2 (Amendment 6).**
+   - Build `b12x-dx2rp2` with `DX2_DST=<path> scripts/build_dx2_rp2_b12x.py`, or apply
+     `patches/b12x-dx2-rowpack-rp2.diff`.
+   - Smoke: `scripts/run_rp2_smoke.sh`.
+   - K4: `B12X_TREE=b12x-dx2rp2 K2_ARMS=prod,rp2 K2_BUILD=rp2 scripts/run_k2.sh`.
+   - A4: `B12X_TREE=b12x-dx2rp2 A2_ARM=rp2 A2_MS=1,4,16 A2_OUT=/work/results/a4_timing_raw.json scripts/run_a2.sh`,
+     then `python3 scripts/summarize_rowpack_timing.py results/a4_timing_raw.json results/a4_timing_summary.json "RP2/prod"`.
+7. **End-to-end KLD.**
+   - `scripts/window_nvfp4_20260925.py` (Amendment 4), `scripts/window_fp8_20260925.py`
+     (Amendment 5) and `scripts/window_cf128_20260925.py` (Amendment 7).
+   - The inputs for the 128-window run come from `scripts/build_inputs_128.py`.
+   - The window scripts need the 09-09 reference launch arguments and a capture-only
+     derivative of the serving image. The 128-window run also needs the TR3 capture launch
+     and image.
+   - They also operate our production host (systemd user unit, locks, ports). Treat them as
+     a record of the procedure and adapt them before use.
 
 ### Re-deriving the reported numbers (no GPU)
 
@@ -665,6 +741,8 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
   `analyze_BC.py` and `analyze_B2_A2.py` regenerate `timing_analysis.json`,
   `timing_split_analysis.json`, `analysis_BC.json` and `analysis_amendment2.json` exactly
   from the raw files in `results/`.
+- **A3 and A4.** `summarize_rowpack_timing.py` gives the medians and intervals reported for
+  A3 and A4 from `a3_timing_raw.json` and `a4_timing_raw.json`.
 - **KLD.** Both windows (`results/kld-rp-20260925/`, `results/kld-fp8-20260925/`) include the
   per-window score records (`scores/*.json`) and per-row scores (`scores/*.npz`). The `.npz`
   files hold row KL, teacher entropy, top-1 tokens and probabilities, and realized-token
@@ -700,8 +778,12 @@ telemetry, and clock CSVs.
    `results/kld-tr3-20260909/` (matched TR3 comparison).
 4. **TR3 comparator.** `brandonmusic/GLM-5.3-Flash-tr3-4bpw`, revision
    `aba59d2175e1ee2887ae0ae1300ba848b1deed84`
-   (https://huggingface.co/brandonmusic/GLM-5.3-Flash-tr3-4bpw). Its KLD values come from the
-   published matched-data comparison in item 3.
+   (https://huggingface.co/brandonmusic/GLM-5.3-Flash-tr3-4bpw).
+   - Its 09-09 KLD values come from the published matched-data comparison in item 3.
+   - The Amendment 7 re-capture uses the same model revision and the same capture image,
+     `local/tr3-r10:cf32-process-cache-20260909` (image id
+     `sha256:62e069faf47f2d42eae5f2c1677f8730a2f3f93d576301fe1bcc7e55f2fdb673`). That image
+     is a local build and is not published.
 5. **Teacher logits and captures.** Dataset `brandonmusic/GLM-5.3-Flash-BF16-Teacher-Logits`
    (https://huggingface.co/datasets/brandonmusic/GLM-5.3-Flash-BF16-Teacher-Logits):
    - revision `95f4fdd94bf29989db2e0d1054e4931f55edb6aa`: routed-block captures;
@@ -727,9 +809,10 @@ telemetry, and clock CSVs.
    earlier https://github.com/lukealonso/b12x redirects there). Apache License 2.0.
    - We patched the copy of b12x inside the serving image. Its git origin is
      local-inference-lab/b12x.
-   - The 16 files the patches touch are identical to commit
+   - The 16 existing files that the patches modify are identical to commit
      `d564f6ca54c092497ec5ae7e07a272f55eec7dbe` of the TrellisMX integration branch
-     (https://github.com/brandonmmusic-max/b12x).
+     (https://github.com/brandonmmusic-max/b12x). The patches also add one new file,
+     `p8_down_remainder.py`.
 9. **Decode benchmark.** `llm_decode_bench.py` version 0.4.29 from
    https://github.com/local-inference-lab/llm-inference-bench (the script's own update
    URL). sha256 of the copy we ran:
@@ -785,7 +868,7 @@ libraries keep their own licenses.
 
 ```
 README.md                 this write-up
-PREREG.md                 preregistration and Amendments 1-6
+PREREG.md                 preregistration and Amendments 1-7
 RESULTS.md                results log, written as results came in
 LICENSE                   ShapleyMCG License 1.0
 scripts/                  every script that produced a number (see scripts/README.md)
@@ -798,8 +881,9 @@ results/
   testB2/                                              B2 per-layer records
   testC/                                               Test C per-configuration records
   analysis_BC.json                                     Tests B and C analysis
-  k2/closure-*.json                                    K2 and K3 closure
+  k2/closure-*.json                                    K2, K3 and K4 closure
   a2_timing_raw.json, a3_timing_raw.json               A2 and A3 timing
+  a4_timing_raw.json, a4_timing_summary.json           A4 timing (raw and summary)
   dx2_split_timing_raw.json                            A2 exploratory split
   analysis_amendment2.json                             B2 and A2 analysis
   kld-rp-20260925/                                     Amendment 4 production window:
@@ -813,4 +897,5 @@ results/
     control-fp8/, rp-fp8/                                runtime audits (with KV capacity), per-window scores
     speed/rp-fp8/                                        benchmark outputs and launch arguments
     window.log, execution-final.json, restoration.json   window log and production restoration record
+  kld-cf128/verified-inputs.json                       Amendment 7 inputs: all 128 windows, hashes (run in progress)
 ```

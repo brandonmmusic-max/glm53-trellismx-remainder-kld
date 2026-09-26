@@ -26,7 +26,7 @@ BUILD = os.environ.get("K2_BUILD", "dx2build")
 TPW = 48
 
 
-ENV = {"prod": None, "dx2": "1", "rp": "rp"}
+ENV = {"prod": None, "dx2": "1", "rp": "rp", "rp2": "rp2"}
 
 
 def runtime(overlay, layer, rank, arm):
@@ -72,7 +72,8 @@ def main() -> None:
             for arm in ARMS:
                 rt = runtime(overlay, layer, rank, arm)
                 if (getattr(rt, "p8_down_remainder", False) != (arm == "dx2")
-                        or getattr(rt, "p8_dx2_rowpack", False) != (arm == "rp")):
+                        or getattr(rt, "p8_dx2_rowpack", False) != (arm in ("rp", "rp2"))
+                        or getattr(rt, "p8_input_rowpack", False) != (arm == "rp2")):
                     raise RuntimeError(f"{arm}: runtime flag mismatch")
                 for path, (chunk, limit) in PATHS.items():
                     out = run_path(rt, x, w, i, chunk, limit)

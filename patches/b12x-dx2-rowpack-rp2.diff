@@ -1,0 +1,882 @@
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/direct_m32_fc2.py b/b12x/moe/_shared/kernels/direct_m32_fc2.py
+--- a/b12x/moe/_shared/kernels/direct_m32_fc2.py	2026-09-09 10:42:38.000000000 -0400
++++ b/b12x/moe/_shared/kernels/direct_m32_fc2.py	2026-09-25 20:35:28.952963973 -0400
+@@ -299,6 +299,13 @@
+             for blk in cutlass.range_constexpr(self.mma_m_blocks):
+                 sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
+                 asc[blk] = ld_shared_u32(sfa_base + (sf_row << Int32(2)))
++            if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                dx2_a_base = smem_base + Int32(self.dx2_a_offset) + stage * Int32(self.a_stage_bytes)
++                dx2_sfa_base = dx2_a_base + Int32(self.a_payload_bytes)
++                dx2_asc = cute.make_rmem_tensor((self.mma_m_blocks,), Uint32)
++                for blk in cutlass.range_constexpr(self.mma_m_blocks):
++                    sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
++                    dx2_asc[blk] = ld_shared_u32(dx2_sfa_base + (sf_row << Int32(2)))
+ 
+             for kb in cutlass.range_constexpr(4):
+                 u_phys = (Int32(kb * 2) + (c >> Int32(1))) ^ q
+@@ -317,6 +324,22 @@
+                     a_frag[blk, 1] = a1
+                     a_frag[blk, 2] = a2
+                     a_frag[blk, 3] = a3
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    dx2_frag = cute.make_rmem_tensor((self.mma_m_blocks, 4), Uint32)
++                    for blk in cutlass.range_constexpr(self.mma_m_blocks):
++                        dx2_a_lo = (
++                            dx2_a_base
++                            + Int32(blk * 16 * self.tile_k)
++                            + (q << Int32(7))
++                            + (u_phys << Int32(4))
++                            + ((c & Int32(1)) << Int32(3))
++                        )
++                        dx2_z0, dx2_z2 = ld_shared_v2_u32(dx2_a_lo)
++                        dx2_z1, dx2_z3 = ld_shared_v2_u32(dx2_a_lo + Int32(8 * self.tile_k))
++                        dx2_frag[blk, 0] = dx2_z0
++                        dx2_frag[blk, 1] = dx2_z1
++                        dx2_frag[blk, 2] = dx2_z2
++                        dx2_frag[blk, 3] = dx2_z3
+ 
+                 dn_b0 = cute.make_rmem_tensor((4,), Uint32)
+                 dn_b1 = cute.make_rmem_tensor((4,), Uint32)
+@@ -376,6 +399,8 @@
+                                 bid_a=kb,
+                                 bid_b=kb,
+                             )
++                            if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                                d0, d1, d2, d3 = mxfp8_mma_m16n8k32_f32_e4m3(d0, d1, d2, d3, dx2_frag[blk, 0], dx2_frag[blk, 1], dx2_frag[blk, 2], dx2_frag[blk, 3], b0, b1, dx2_asc[blk], sfb_word, bid_a=kb, bid_b=kb)
+                         fragment[0] = d0
+                         fragment[1] = d1
+                         fragment[2] = d2
+@@ -426,6 +451,10 @@
+                     fragment = facc[blk][nt]
+                     row_lo = Int32(blk * 16) + q
+                     row_hi = row_lo + Int32(8)
++                    if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                        # D-x2-RP: row q+8 carries lo*B for the route in row q.
++                        fragment[0] = fragment[0] + fragment[2]
++                        fragment[1] = fragment[1] + fragment[3]
+                     if row_lo < valid_rows:
+                         st_shared_u32(
+                             physical_base
+@@ -572,3 +601,15 @@
+     a_stage_bytes = a_payload_bytes + a_scale_bytes
+     a_storage_bytes = 2 * a_stage_bytes
+     b_storage_offset = ((a_storage_bytes + 1023) // 1024) * 1024
++
++
++class P8DirectM32FC2KernelDX2(P8DirectM32FC2Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
++
++
++class P8DirectM32FC2KernelRP(P8DirectM32FC2Kernel):
++    """D-x2-RP row-packed down-hop remainder (PREREG amendment 3)."""
++
++    p8_dx2_rowpack = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/fc2_k5_funnel.py b/b12x/moe/_shared/kernels/fc2_k5_funnel.py
+--- a/b12x/moe/_shared/kernels/fc2_k5_funnel.py	2026-09-09 09:39:18.000000000 -0400
++++ b/b12x/moe/_shared/kernels/fc2_k5_funnel.py	2026-09-25 20:35:28.952937102 -0400
+@@ -299,6 +299,13 @@
+             for blk in cutlass.range_constexpr(self.mma_m_blocks):
+                 sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
+                 asc[blk] = ld_shared_u32(sfa_base + (sf_row << Int32(2)))
++            if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                dx2_a_base = smem_base + Int32(self.dx2_a_offset) + stage * Int32(self.a_stage_bytes)
++                dx2_sfa_base = dx2_a_base + Int32(self.a_payload_bytes)
++                dx2_asc = cute.make_rmem_tensor((self.mma_m_blocks,), Uint32)
++                for blk in cutlass.range_constexpr(self.mma_m_blocks):
++                    sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
++                    dx2_asc[blk] = ld_shared_u32(dx2_sfa_base + (sf_row << Int32(2)))
+ 
+             for kb in cutlass.range_constexpr(4):
+                 u_phys = (Int32(kb * 2) + (c >> Int32(1))) ^ q
+@@ -317,6 +324,22 @@
+                     a_frag[blk, 1] = a1
+                     a_frag[blk, 2] = a2
+                     a_frag[blk, 3] = a3
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    dx2_frag = cute.make_rmem_tensor((self.mma_m_blocks, 4), Uint32)
++                    for blk in cutlass.range_constexpr(self.mma_m_blocks):
++                        dx2_a_lo = (
++                            dx2_a_base
++                            + Int32(blk * 16 * self.tile_k)
++                            + (q << Int32(7))
++                            + (u_phys << Int32(4))
++                            + ((c & Int32(1)) << Int32(3))
++                        )
++                        dx2_z0, dx2_z2 = ld_shared_v2_u32(dx2_a_lo)
++                        dx2_z1, dx2_z3 = ld_shared_v2_u32(dx2_a_lo + Int32(8 * self.tile_k))
++                        dx2_frag[blk, 0] = dx2_z0
++                        dx2_frag[blk, 1] = dx2_z1
++                        dx2_frag[blk, 2] = dx2_z2
++                        dx2_frag[blk, 3] = dx2_z3
+ 
+                 dn_b0 = cute.make_rmem_tensor((4,), Uint32)
+                 dn_b1 = cute.make_rmem_tensor((4,), Uint32)
+@@ -376,6 +399,8 @@
+                                 bid_a=kb,
+                                 bid_b=kb,
+                             )
++                            if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                                d0, d1, d2, d3 = mxfp8_mma_m16n8k32_f32_e4m3(d0, d1, d2, d3, dx2_frag[blk, 0], dx2_frag[blk, 1], dx2_frag[blk, 2], dx2_frag[blk, 3], b0, b1, dx2_asc[blk], sfb_word, bid_a=kb, bid_b=kb)
+                         fragment[0] = d0
+                         fragment[1] = d1
+                         fragment[2] = d2
+@@ -426,6 +451,10 @@
+                     fragment = facc[blk][nt]
+                     row_lo = Int32(blk * 16) + q
+                     row_hi = row_lo + Int32(8)
++                    if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                        # D-x2-RP: row q+8 carries lo*B for the route in row q.
++                        fragment[0] = fragment[0] + fragment[2]
++                        fragment[1] = fragment[1] + fragment[3]
+                     if row_lo < valid_rows:
+                         st_shared_u32(
+                             physical_base
+@@ -560,3 +589,15 @@
+                                    + Int32(part * 128)] = cutlass.BFloat16(0.0)
+             cute.arch.sync_threads()
+             task_slot += Int32(gdimz)
++
++
++class P8SmallMPhase2KernelDX2(P8SmallMPhase2Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
++
++
++class P8SmallMPhase2KernelRP(P8SmallMPhase2Kernel):
++    """D-x2-RP row-packed down-hop remainder (PREREG amendment 3)."""
++
++    p8_dx2_rowpack = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/grouped_fc2_grid376.py b/b12x/moe/_shared/kernels/grouped_fc2_grid376.py
+--- a/b12x/moe/_shared/kernels/grouped_fc2_grid376.py	2026-09-09 10:20:06.000000000 -0400
++++ b/b12x/moe/_shared/kernels/grouped_fc2_grid376.py	2026-09-25 20:35:28.952814936 -0400
+@@ -174,3 +174,9 @@
+ 
+ 
+ __all__ = ["P8CoupledPrefillFC2Kernel"]
++
++
++class P8CoupledPrefillFC2KernelDX2(P8CoupledPrefillFC2Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/p8_down_remainder.py b/b12x/moe/_shared/kernels/p8_down_remainder.py
+--- a/b12x/moe/_shared/kernels/p8_down_remainder.py	1969-12-31 19:00:00.000000000 -0500
++++ b/b12x/moe/_shared/kernels/p8_down_remainder.py	2026-09-25 20:35:28.951897725 -0400
+@@ -0,0 +1,48 @@
++"""D-x2: two-term (hi + lo) E4M3/UE8M0-K32 carrier at the P8 down (FC2) input only."""
++from __future__ import annotations
++
++import importlib
++
++
++def enable_down_remainder(backend, phases: str = "both") -> None:
++    """Upgrade a constructed backend's phase kernels to their statically defined DX2 classes.
++
++    `phases` is a diagnostic split: "fc1" only writes the lo plane (FC2 ignores it), "fc2" only
++    stages the (zero) lo plane and issues the extra MMA. Both must be bit-identical to prod.
++    """
++    if phases not in ("both", "fc1", "fc2"):
++        raise ValueError(f"unknown D-x2 phase split: {phases!r}")
++    attrs = {"both": ("materialized_phase1_kernel", "materialized_phase2_kernel"),
++             "fc1": ("materialized_phase1_kernel",), "fc2": ("materialized_phase2_kernel",)}[phases]
++    for attr in attrs:
++        obj = getattr(backend, attr)
++        cls = type(obj)
++        dx2 = getattr(importlib.import_module(cls.__module__), cls.__name__ + "DX2", None)
++        if dx2 is None or not issubclass(dx2, cls):
++            raise RuntimeError(f"no D-x2 variant for {cls.__module__}.{cls.__name__}")
++        obj.__class__ = dx2
++    if phases == "fc1":
++        return
++    fc2 = backend.materialized_phase2_kernel
++    # FC2 double-buffers the lo A tile + lo scales after everything it already owns.
++    fc2.dx2_a_offset = (int(fc2.shared_bytes) + 1023) // 1024 * 1024
++    fc2.shared_bytes = fc2.dx2_a_offset + 2 * int(fc2.a_stage_bytes)
++    fc2.shared_words = (fc2.shared_bytes + 3) // 4
++    fc2.trellis_lut_offset = fc2.shared_bytes
++
++
++def enable_rowpack(backend, input_hop: bool = False) -> None:
++    """D-x2-RP: upgrade direct (M<=16) phase kernels to their static RP classes. No smem change.
++
++    input_hop (D-x2-RP2): FC1 becomes the RP2 class and the backend's input prologue also writes x_lo.
++    """
++    if input_hop:
++        backend.p8_input_rowpack = True
++    for attr in ("materialized_phase1_kernel", "materialized_phase2_kernel"):
++        obj = getattr(backend, attr)
++        cls = type(obj)
++        suffix = "RP2" if (input_hop and attr == "materialized_phase1_kernel") else "RP"
++        rp = getattr(importlib.import_module(cls.__module__), cls.__name__ + suffix, None)
++        if rp is None or not issubclass(rp, cls):
++            raise RuntimeError(f"no D-x2-RP variant for {cls.__module__}.{cls.__name__}")
++        obj.__class__ = rp
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/p8_small_m.py b/b12x/moe/_shared/kernels/p8_small_m.py
+--- a/b12x/moe/_shared/kernels/p8_small_m.py	2026-09-07 21:22:01.000000000 -0400
++++ b/b12x/moe/_shared/kernels/p8_small_m.py	2026-09-25 20:35:28.952524342 -0400
+@@ -298,6 +298,13 @@
+             for blk in cutlass.range_constexpr(self.mma_m_blocks):
+                 sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
+                 asc[blk] = ld_shared_u32(sfa_base + (sf_row << Int32(2)))
++            if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                dx2_a_base = smem_base + Int32(self.dx2_a_offset) + stage * Int32(self.a_stage_bytes)
++                dx2_sfa_base = dx2_a_base + Int32(self.a_payload_bytes)
++                dx2_asc = cute.make_rmem_tensor((self.mma_m_blocks,), Uint32)
++                for blk in cutlass.range_constexpr(self.mma_m_blocks):
++                    sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
++                    dx2_asc[blk] = ld_shared_u32(dx2_sfa_base + (sf_row << Int32(2)))
+ 
+             for kb in cutlass.range_constexpr(4):
+                 u_phys = (Int32(kb * 2) + (c >> Int32(1))) ^ q
+@@ -316,6 +323,22 @@
+                     a_frag[blk, 1] = a1
+                     a_frag[blk, 2] = a2
+                     a_frag[blk, 3] = a3
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    dx2_frag = cute.make_rmem_tensor((self.mma_m_blocks, 4), Uint32)
++                    for blk in cutlass.range_constexpr(self.mma_m_blocks):
++                        dx2_a_lo = (
++                            dx2_a_base
++                            + Int32(blk * 16 * self.tile_k)
++                            + (q << Int32(7))
++                            + (u_phys << Int32(4))
++                            + ((c & Int32(1)) << Int32(3))
++                        )
++                        dx2_z0, dx2_z2 = ld_shared_v2_u32(dx2_a_lo)
++                        dx2_z1, dx2_z3 = ld_shared_v2_u32(dx2_a_lo + Int32(8 * self.tile_k))
++                        dx2_frag[blk, 0] = dx2_z0
++                        dx2_frag[blk, 1] = dx2_z1
++                        dx2_frag[blk, 2] = dx2_z2
++                        dx2_frag[blk, 3] = dx2_z3
+ 
+                 dn_b0 = cute.make_rmem_tensor((4,), Uint32)
+                 dn_b1 = cute.make_rmem_tensor((4,), Uint32)
+@@ -375,6 +398,8 @@
+                                 bid_a=kb,
+                                 bid_b=kb,
+                             )
++                            if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                                d0, d1, d2, d3 = mxfp8_mma_m16n8k32_f32_e4m3(d0, d1, d2, d3, dx2_frag[blk, 0], dx2_frag[blk, 1], dx2_frag[blk, 2], dx2_frag[blk, 3], b0, b1, dx2_asc[blk], sfb_word, bid_a=kb, bid_b=kb)
+                         fragment[0] = d0
+                         fragment[1] = d1
+                         fragment[2] = d2
+@@ -425,6 +450,10 @@
+                     fragment = facc[blk][nt]
+                     row_lo = Int32(blk * 16) + q
+                     row_hi = row_lo + Int32(8)
++                    if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                        # D-x2-RP: row q+8 carries lo*B for the route in row q.
++                        fragment[0] = fragment[0] + fragment[2]
++                        fragment[1] = fragment[1] + fragment[3]
+                     if row_lo < valid_rows:
+                         st_shared_u32(
+                             physical_base
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/policy_m32_fc1.py b/b12x/moe/_shared/kernels/policy_m32_fc1.py
+--- a/b12x/moe/_shared/kernels/policy_m32_fc1.py	2026-09-09 10:36:45.000000000 -0400
++++ b/b12x/moe/_shared/kernels/policy_m32_fc1.py	2026-09-25 20:35:28.952724788 -0400
+@@ -169,3 +169,9 @@
+ 
+ 
+ __all__ = ["P8CoupledPrefillFC1Kernel"]
++
++
++class P8CoupledPrefillFC1KernelDX2(P8CoupledPrefillFC1Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/policy_m32_fc2.py b/b12x/moe/_shared/kernels/policy_m32_fc2.py
+--- a/b12x/moe/_shared/kernels/policy_m32_fc2.py	2026-09-09 10:36:45.000000000 -0400
++++ b/b12x/moe/_shared/kernels/policy_m32_fc2.py	2026-09-25 20:35:28.952837801 -0400
+@@ -174,3 +174,9 @@
+ 
+ 
+ __all__ = ["P8CoupledPrefillFC2Kernel"]
++
++
++class P8CoupledPrefillFC2KernelDX2(P8CoupledPrefillFC2Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/route_hoist_direct32.py b/b12x/moe/_shared/kernels/route_hoist_direct32.py
+--- a/b12x/moe/_shared/kernels/route_hoist_direct32.py	2026-09-09 13:41:42.000000000 -0400
++++ b/b12x/moe/_shared/kernels/route_hoist_direct32.py	2026-09-25 20:35:28.954891188 -0400
+@@ -13,6 +13,7 @@
+ import cuda.bindings.driver as cuda
+ import cutlass
+ import cutlass.cute as cute
++from b12x._lib.intrinsics import cvt_e4m3x4_to_f32x4
+ 
+ from cutlass.cutlass_dsl import Int32, Int64, T, Uint32, dsl_user_op
+ from cutlass._mlir.dialects import llvm
+@@ -315,6 +316,16 @@
+             tok = cached_scale_token
+             sf_src = tok * input_k128_tiles * Int32(4) + (k64_slice >> Int32(1)) * Int32(4)
+             cp_async_u32_shared_global(sfa_base + (tid << Int32(2)), get_ptr_as_int64(scale_storage, sf_src))
++        if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++            # D-x2-RP2: stage x_lo (token row + 16) into A row 8 and its scale word into SFA row 8.
++            if tid < Int32(4):
++                rp2_tok = cached_payload_tokens[0] + Int32(16)
++                rp2_src = rp2_tok * words_per_token + k64_slice * Int32(16) + (tid << Int32(2))
++                cp_async4_shared_global(a_base + Int32(8 * 128) + (tid << Int32(4)), get_ptr_as_int64(packed_a_u32, rp2_src))
++            if tid == Int32(0):
++                rp2_stok = cached_scale_token + Int32(16)
++                rp2_sf = rp2_stok * input_k128_tiles * Int32(4) + (k64_slice >> Int32(1)) * Int32(4)
++                cp_async_u32_shared_global(sfa_base + Int32(8 * 4), get_ptr_as_int64(scale_storage, rp2_sf))
+         k128_slice = k64_slice >> Int32(1)
+         k_half = k64_slice & Int32(1)
+         input_k128_count = input_k128_tiles
+@@ -401,6 +412,8 @@
+                 sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
+                 if cutlass.const_expr(self.p8_broadcast_a):
+                     sf_row = Int32(0)
++                if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                    sf_row = (lane & Int32(1)) << Int32(3)  # odd lanes feed rows q+8 = x_lo's scale
+                 asc[blk] = ld_shared_u32(sfa_base + (sf_row << Int32(2))) >> scale_shift
+             for kb in cutlass.range_constexpr(2):
+                 u_phys = Int32(kb * 2) + (c >> Int32(1)) ^ q
+@@ -416,6 +429,8 @@
+                     a0, a2 = ld_shared_v2_u32(a_lo)
+                     if cutlass.const_expr(self.p8_broadcast_a):
+                         a1, a3 = (a0, a2)
++                        if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                            a1, a3 = ld_shared_v2_u32(a_lo + Int32(8 * 128))  # rows q+8 = staged x_lo row 8
+                     else:
+                         a1, a3 = ld_shared_v2_u32(a_lo + Int32(8 * 128))
+                     a_frag[blk, 0] = a0
+@@ -507,6 +522,12 @@
+                 up_fragment = up_acc[blk][nt]
+                 row_lo = Int32(blk * 16) + q
+                 row_hi = row_lo + Int32(8)
++                if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                    # D-x2-RP2: rows q+8 carry x_lo * W for the route in row q.
++                    gate_fragment[0] = gate_fragment[0] + gate_fragment[2]
++                    gate_fragment[1] = gate_fragment[1] + gate_fragment[3]
++                    up_fragment[0] = up_fragment[0] + up_fragment[2]
++                    up_fragment[1] = up_fragment[1] + up_fragment[3]
+                 if cutlass.const_expr(self.scale_sandwich):
+                     st_shared_u32(epilogue_base + (row_lo * Int32(self.tile_n) + col) * Int32(2), _p8_pack_f32x2_to_half2(alpha_value * gate_fragment[0], alpha_value * gate_fragment[1]))
+                     st_shared_u32(epilogue_base + (row_hi * Int32(self.tile_n) + col) * Int32(2), _p8_pack_f32x2_to_half2(alpha_value * gate_fragment[2], alpha_value * gate_fragment[3]))
+@@ -724,6 +745,52 @@
+                 sf_base = rows_capacity * words_per_row
+                 scale_bytes = cute.recast_tensor(intermediate_u32, cutlass.Uint8)
+                 scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(scale_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    # D-x2: second E4M3/UE8M0-K32 plane, lo = v - dq(hi), after the whole hi region.
++                    dx2_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        dx2_vals = _w4a8_trellis_permute_k32(values)
++                    dx2_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    dx2_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    dx2_max = cutlass.Float32(0.0)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        dx2_h0, dx2_h1, dx2_h2, dx2_h3 = cvt_e4m3x4_to_f32x4(payload[dx2_w])
++                        dx2_lo[dx2_w * 4 + 0] = dx2_vals[dx2_w * 4 + 0] - dx2_h0 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 1] = dx2_vals[dx2_w * 4 + 1] - dx2_h1 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 2] = dx2_vals[dx2_w * 4 + 2] - dx2_h2 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 3] = dx2_vals[dx2_w * 4 + 3] - dx2_h3 * dx2_scale
++                    for dx2_e in cutlass.range_constexpr(32):
++                        dx2_abs = fabs_f32(dx2_lo[dx2_e])
++                        if dx2_abs > dx2_max:
++                            dx2_max = dx2_abs
++                    dx2_payload, dx2_byte = quantize_block_fp8_mx(dx2_lo, dx2_max)
++                    dx2_off = rows_capacity * (words_per_row + intermediate_tiles)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        intermediate_u32[dx2_off + dst_word + Int32(dx2_w)] = dx2_payload[dx2_w]
++                    scale_bytes[(dx2_off + sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(dx2_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                    # D-x2-RP: lo = v - dq(hi) into row +8 of this route's own tile (direct tiles hold one route).
++                    rp_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        rp_vals = _w4a8_trellis_permute_k32(values)
++                    rp_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    rp_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    rp_max = cutlass.Float32(0.0)
++                    for rp_w in cutlass.range_constexpr(8):
++                        rp_h0, rp_h1, rp_h2, rp_h3 = cvt_e4m3x4_to_f32x4(payload[rp_w])
++                        rp_lo[rp_w * 4 + 0] = rp_vals[rp_w * 4 + 0] - rp_h0 * rp_scale
++                        rp_lo[rp_w * 4 + 1] = rp_vals[rp_w * 4 + 1] - rp_h1 * rp_scale
++                        rp_lo[rp_w * 4 + 2] = rp_vals[rp_w * 4 + 2] - rp_h2 * rp_scale
++                        rp_lo[rp_w * 4 + 3] = rp_vals[rp_w * 4 + 3] - rp_h3 * rp_scale
++                    for rp_e in cutlass.range_constexpr(32):
++                        rp_abs = fabs_f32(rp_lo[rp_e])
++                        if rp_abs > rp_max:
++                            rp_max = rp_abs
++                    rp_payload, rp_byte = quantize_block_fp8_mx(rp_lo, rp_max)
++                    rp_dst = dst_word + Int32(8) * words_per_row
++                    for rp_w in cutlass.range_constexpr(8):
++                        intermediate_u32[rp_dst + Int32(rp_w)] = rp_payload[rp_w]
++                    scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + tid + Int32(8)) * Int32(4) + block] = cutlass.Uint8(rp_byte & Uint32(255))
+         cute.arch.sync_threads()
+ 
+ 
+@@ -865,3 +932,22 @@
+     source_tile_m = 32
+     mma_m_blocks = 2
+     owned_row_groups = 8
++
++
++class P8DirectM32FC1KernelDX2(P8DirectM32FC1Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
++
++
++class P8DirectM32FC1KernelRP(P8DirectM32FC1Kernel):
++    """D-x2-RP row-packed down-hop remainder (PREREG amendment 3)."""
++
++    p8_dx2_rowpack = True
++
++
++class P8DirectM32FC1KernelRP2(P8DirectM32FC1Kernel):
++    """D-x2-RP2: row-packed remainder at both hops (PREREG amendment 5)."""
++
++    p8_dx2_rowpack = True
++    p8_input_rowpack = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/route_hoist_dynamic.py b/b12x/moe/_shared/kernels/route_hoist_dynamic.py
+--- a/b12x/moe/_shared/kernels/route_hoist_dynamic.py	2026-09-09 13:41:42.000000000 -0400
++++ b/b12x/moe/_shared/kernels/route_hoist_dynamic.py	2026-09-25 20:35:28.954569396 -0400
+@@ -45,6 +45,7 @@
+ import cuda.bindings.driver as cuda
+ import cutlass
+ import cutlass.cute as cute
++from b12x._lib.intrinsics import cvt_e4m3x4_to_f32x4, pow2_ceil_ue8m0
+ import cutlass.pipeline as pipeline
+ import cutlass.utils as utils
+ import cutlass.utils.blockscaled_layout as blockscaled_utils
+@@ -3783,6 +3784,26 @@
+                                         packed64,
+                                     )
+                                 scale_storage[m1_blk_idx] = Uint8(m1_scale_byte & Uint32(0xFF))
++                                if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                                    # D-x2-RP2: x_lo = v - dq(x_hi) into token row + 16 (payload + UE8M0) for FC1 MMA rows q+8.
++                                    rp2_vals = _w4a8_trellis_permute_k32(m1_values)
++                                    rp2_scale, _ = pow2_ceil_ue8m0(m1_block_max * cutlass.Float32(1.0 / 448.0))
++                                    rp2_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                                    rp2_max = cutlass.Float32(0.0)
++                                    for rp2_w in cutlass.range_constexpr(8):
++                                        rp2_h0, rp2_h1, rp2_h2, rp2_h3 = cvt_e4m3x4_to_f32x4(m1_payload[rp2_w])
++                                        rp2_lo[rp2_w * 4 + 0] = rp2_vals[rp2_w * 4 + 0] - rp2_h0 * rp2_scale
++                                        rp2_lo[rp2_w * 4 + 1] = rp2_vals[rp2_w * 4 + 1] - rp2_h1 * rp2_scale
++                                        rp2_lo[rp2_w * 4 + 2] = rp2_vals[rp2_w * 4 + 2] - rp2_h2 * rp2_scale
++                                        rp2_lo[rp2_w * 4 + 3] = rp2_vals[rp2_w * 4 + 3] - rp2_h3 * rp2_scale
++                                    for rp2_e in cutlass.range_constexpr(32):
++                                        rp2_max = fmax_f32(rp2_max, fabs_f32(rp2_lo[rp2_e]))
++                                    rp2_payload, rp2_byte = quantize_block_fp8_mx(rp2_lo, rp2_max)
++                                    rp2_blk = m1_blk_idx + Int32(16) * mx_blocks_per_row
++                                    for rp2_pair in cutlass.range_constexpr(4):
++                                        rp2_packed = (Uint64(rp2_payload[rp2_pair * 2 + 1]) << Uint64(32)) | Uint64(rp2_payload[rp2_pair * 2])
++                                        st_global_u64(get_ptr_as_int64(packed_a_storage, rp2_blk * Int32(32) + Int32(rp2_pair * 8)), rp2_packed)
++                                    scale_storage[rp2_blk] = Uint8(rp2_byte & Uint32(0xFF))
+                         m1_h512 += m1_warp_stride
+                 elif cutlass.const_expr(self.p8_scale_sandwich):
+                     # One warp owns one complete H128 input block.  Each lane
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/route_hoist_fc1.py b/b12x/moe/_shared/kernels/route_hoist_fc1.py
+--- a/b12x/moe/_shared/kernels/route_hoist_fc1.py	2026-09-09 13:41:42.000000000 -0400
++++ b/b12x/moe/_shared/kernels/route_hoist_fc1.py	2026-09-25 20:35:28.952206486 -0400
+@@ -13,6 +13,7 @@
+ import cuda.bindings.driver as cuda
+ import cutlass
+ import cutlass.cute as cute
++from b12x._lib.intrinsics import cvt_e4m3x4_to_f32x4
+ 
+ from cutlass.cutlass_dsl import Int32, Int64, T, Uint32, dsl_user_op
+ from cutlass._mlir.dialects import llvm
+@@ -731,6 +732,52 @@
+                 sf_base = rows_capacity * words_per_row
+                 scale_bytes = cute.recast_tensor(intermediate_u32, cutlass.Uint8)
+                 scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(scale_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    # D-x2: second E4M3/UE8M0-K32 plane, lo = v - dq(hi), after the whole hi region.
++                    dx2_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        dx2_vals = _w4a8_trellis_permute_k32(values)
++                    dx2_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    dx2_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    dx2_max = cutlass.Float32(0.0)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        dx2_h0, dx2_h1, dx2_h2, dx2_h3 = cvt_e4m3x4_to_f32x4(payload[dx2_w])
++                        dx2_lo[dx2_w * 4 + 0] = dx2_vals[dx2_w * 4 + 0] - dx2_h0 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 1] = dx2_vals[dx2_w * 4 + 1] - dx2_h1 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 2] = dx2_vals[dx2_w * 4 + 2] - dx2_h2 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 3] = dx2_vals[dx2_w * 4 + 3] - dx2_h3 * dx2_scale
++                    for dx2_e in cutlass.range_constexpr(32):
++                        dx2_abs = fabs_f32(dx2_lo[dx2_e])
++                        if dx2_abs > dx2_max:
++                            dx2_max = dx2_abs
++                    dx2_payload, dx2_byte = quantize_block_fp8_mx(dx2_lo, dx2_max)
++                    dx2_off = rows_capacity * (words_per_row + intermediate_tiles)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        intermediate_u32[dx2_off + dst_word + Int32(dx2_w)] = dx2_payload[dx2_w]
++                    scale_bytes[(dx2_off + sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(dx2_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                    # D-x2-RP: lo = v - dq(hi) into row +8 of this route's own tile (direct tiles hold one route).
++                    rp_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        rp_vals = _w4a8_trellis_permute_k32(values)
++                    rp_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    rp_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    rp_max = cutlass.Float32(0.0)
++                    for rp_w in cutlass.range_constexpr(8):
++                        rp_h0, rp_h1, rp_h2, rp_h3 = cvt_e4m3x4_to_f32x4(payload[rp_w])
++                        rp_lo[rp_w * 4 + 0] = rp_vals[rp_w * 4 + 0] - rp_h0 * rp_scale
++                        rp_lo[rp_w * 4 + 1] = rp_vals[rp_w * 4 + 1] - rp_h1 * rp_scale
++                        rp_lo[rp_w * 4 + 2] = rp_vals[rp_w * 4 + 2] - rp_h2 * rp_scale
++                        rp_lo[rp_w * 4 + 3] = rp_vals[rp_w * 4 + 3] - rp_h3 * rp_scale
++                    for rp_e in cutlass.range_constexpr(32):
++                        rp_abs = fabs_f32(rp_lo[rp_e])
++                        if rp_abs > rp_max:
++                            rp_max = rp_abs
++                    rp_payload, rp_byte = quantize_block_fp8_mx(rp_lo, rp_max)
++                    rp_dst = dst_word + Int32(8) * words_per_row
++                    for rp_w in cutlass.range_constexpr(8):
++                        intermediate_u32[rp_dst + Int32(rp_w)] = rp_payload[rp_w]
++                    scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + tid + Int32(8)) * Int32(4) + block] = cutlass.Uint8(rp_byte & Uint32(255))
+         cute.arch.sync_threads()
+ 
+ 
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/route_hoist_k5.py b/b12x/moe/_shared/kernels/route_hoist_k5.py
+--- a/b12x/moe/_shared/kernels/route_hoist_k5.py	2026-09-09 13:41:42.000000000 -0400
++++ b/b12x/moe/_shared/kernels/route_hoist_k5.py	2026-09-25 20:35:28.954795992 -0400
+@@ -13,6 +13,7 @@
+ import cuda.bindings.driver as cuda
+ import cutlass
+ import cutlass.cute as cute
++from b12x._lib.intrinsics import cvt_e4m3x4_to_f32x4
+ 
+ from cutlass.cutlass_dsl import Int32, Int64, T, Uint32, dsl_user_op
+ from cutlass._mlir.dialects import llvm
+@@ -315,6 +316,16 @@
+             tok = cached_scale_token
+             sf_src = tok * input_k128_tiles * Int32(4) + (k64_slice >> Int32(1)) * Int32(4)
+             cp_async_u32_shared_global(sfa_base + (tid << Int32(2)), get_ptr_as_int64(scale_storage, sf_src))
++        if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++            # D-x2-RP2: stage x_lo (token row + 16) into A row 8 and its scale word into SFA row 8.
++            if tid < Int32(4):
++                rp2_tok = cached_payload_tokens[0] + Int32(16)
++                rp2_src = rp2_tok * words_per_token + k64_slice * Int32(16) + (tid << Int32(2))
++                cp_async4_shared_global(a_base + Int32(8 * 128) + (tid << Int32(4)), get_ptr_as_int64(packed_a_u32, rp2_src))
++            if tid == Int32(0):
++                rp2_stok = cached_scale_token + Int32(16)
++                rp2_sf = rp2_stok * input_k128_tiles * Int32(4) + (k64_slice >> Int32(1)) * Int32(4)
++                cp_async_u32_shared_global(sfa_base + Int32(8 * 4), get_ptr_as_int64(scale_storage, rp2_sf))
+         k128_slice = k64_slice >> Int32(1)
+         k_half = k64_slice & Int32(1)
+         input_k128_count = input_k128_tiles
+@@ -401,6 +412,8 @@
+                 sf_row = Int32(blk * 16) + q + ((lane & Int32(1)) << Int32(3))
+                 if cutlass.const_expr(self.p8_broadcast_a):
+                     sf_row = Int32(0)
++                if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                    sf_row = (lane & Int32(1)) << Int32(3)  # odd lanes feed rows q+8 = x_lo's scale
+                 asc[blk] = ld_shared_u32(sfa_base + (sf_row << Int32(2))) >> scale_shift
+             for kb in cutlass.range_constexpr(2):
+                 u_phys = Int32(kb * 2) + (c >> Int32(1)) ^ q
+@@ -416,6 +429,8 @@
+                     a0, a2 = ld_shared_v2_u32(a_lo)
+                     if cutlass.const_expr(self.p8_broadcast_a):
+                         a1, a3 = (a0, a2)
++                        if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                            a1, a3 = ld_shared_v2_u32(a_lo + Int32(8 * 128))  # rows q+8 = staged x_lo row 8
+                     else:
+                         a1, a3 = ld_shared_v2_u32(a_lo + Int32(8 * 128))
+                     a_frag[blk, 0] = a0
+@@ -507,6 +522,12 @@
+                 up_fragment = up_acc[blk][nt]
+                 row_lo = Int32(blk * 16) + q
+                 row_hi = row_lo + Int32(8)
++                if cutlass.const_expr(getattr(self, "p8_input_rowpack", False)):
++                    # D-x2-RP2: rows q+8 carry x_lo * W for the route in row q.
++                    gate_fragment[0] = gate_fragment[0] + gate_fragment[2]
++                    gate_fragment[1] = gate_fragment[1] + gate_fragment[3]
++                    up_fragment[0] = up_fragment[0] + up_fragment[2]
++                    up_fragment[1] = up_fragment[1] + up_fragment[3]
+                 if cutlass.const_expr(self.scale_sandwich):
+                     st_shared_u32(epilogue_base + (row_lo * Int32(self.tile_n) + col) * Int32(2), _p8_pack_f32x2_to_half2(alpha_value * gate_fragment[0], alpha_value * gate_fragment[1]))
+                     st_shared_u32(epilogue_base + (row_hi * Int32(self.tile_n) + col) * Int32(2), _p8_pack_f32x2_to_half2(alpha_value * gate_fragment[2], alpha_value * gate_fragment[3]))
+@@ -724,6 +745,52 @@
+                 sf_base = rows_capacity * words_per_row
+                 scale_bytes = cute.recast_tensor(intermediate_u32, cutlass.Uint8)
+                 scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(scale_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    # D-x2: second E4M3/UE8M0-K32 plane, lo = v - dq(hi), after the whole hi region.
++                    dx2_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        dx2_vals = _w4a8_trellis_permute_k32(values)
++                    dx2_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    dx2_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    dx2_max = cutlass.Float32(0.0)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        dx2_h0, dx2_h1, dx2_h2, dx2_h3 = cvt_e4m3x4_to_f32x4(payload[dx2_w])
++                        dx2_lo[dx2_w * 4 + 0] = dx2_vals[dx2_w * 4 + 0] - dx2_h0 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 1] = dx2_vals[dx2_w * 4 + 1] - dx2_h1 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 2] = dx2_vals[dx2_w * 4 + 2] - dx2_h2 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 3] = dx2_vals[dx2_w * 4 + 3] - dx2_h3 * dx2_scale
++                    for dx2_e in cutlass.range_constexpr(32):
++                        dx2_abs = fabs_f32(dx2_lo[dx2_e])
++                        if dx2_abs > dx2_max:
++                            dx2_max = dx2_abs
++                    dx2_payload, dx2_byte = quantize_block_fp8_mx(dx2_lo, dx2_max)
++                    dx2_off = rows_capacity * (words_per_row + intermediate_tiles)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        intermediate_u32[dx2_off + dst_word + Int32(dx2_w)] = dx2_payload[dx2_w]
++                    scale_bytes[(dx2_off + sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(dx2_byte & Uint32(255))
++                if cutlass.const_expr(getattr(self, "p8_dx2_rowpack", False)):
++                    # D-x2-RP: lo = v - dq(hi) into row +8 of this route's own tile (direct tiles hold one route).
++                    rp_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        rp_vals = _w4a8_trellis_permute_k32(values)
++                    rp_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    rp_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    rp_max = cutlass.Float32(0.0)
++                    for rp_w in cutlass.range_constexpr(8):
++                        rp_h0, rp_h1, rp_h2, rp_h3 = cvt_e4m3x4_to_f32x4(payload[rp_w])
++                        rp_lo[rp_w * 4 + 0] = rp_vals[rp_w * 4 + 0] - rp_h0 * rp_scale
++                        rp_lo[rp_w * 4 + 1] = rp_vals[rp_w * 4 + 1] - rp_h1 * rp_scale
++                        rp_lo[rp_w * 4 + 2] = rp_vals[rp_w * 4 + 2] - rp_h2 * rp_scale
++                        rp_lo[rp_w * 4 + 3] = rp_vals[rp_w * 4 + 3] - rp_h3 * rp_scale
++                    for rp_e in cutlass.range_constexpr(32):
++                        rp_abs = fabs_f32(rp_lo[rp_e])
++                        if rp_abs > rp_max:
++                            rp_max = rp_abs
++                    rp_payload, rp_byte = quantize_block_fp8_mx(rp_lo, rp_max)
++                    rp_dst = dst_word + Int32(8) * words_per_row
++                    for rp_w in cutlass.range_constexpr(8):
++                        intermediate_u32[rp_dst + Int32(rp_w)] = rp_payload[rp_w]
++                    scale_bytes[(sf_base + output_tile * rows_capacity + physical_row_base + tid + Int32(8)) * Int32(4) + block] = cutlass.Uint8(rp_byte & Uint32(255))
+         cute.arch.sync_threads()
+ 
+ 
+@@ -858,3 +925,22 @@
+ 
+     def __init__(self):
+         super().__init__(full_coupled=True)
++
++
++class P8H128FC1KernelDX2(P8H128FC1Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
++
++
++class P8H128FC1KernelRP(P8H128FC1Kernel):
++    """D-x2-RP row-packed down-hop remainder (PREREG amendment 3)."""
++
++    p8_dx2_rowpack = True
++
++
++class P8H128FC1KernelRP2(P8H128FC1Kernel):
++    """D-x2-RP2: row-packed remainder at both hops (PREREG amendment 5)."""
++
++    p8_dx2_rowpack = True
++    p8_input_rowpack = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/route_hoist_prefill.py b/b12x/moe/_shared/kernels/route_hoist_prefill.py
+--- a/b12x/moe/_shared/kernels/route_hoist_prefill.py	2026-09-09 13:41:42.000000000 -0400
++++ b/b12x/moe/_shared/kernels/route_hoist_prefill.py	2026-09-25 20:35:28.952697406 -0400
+@@ -169,3 +169,9 @@
+ 
+ 
+ __all__ = ["P8CoupledPrefillFC1Kernel"]
++
++
++class P8CoupledPrefillFC1KernelDX2(P8CoupledPrefillFC1Kernel):
++    """D-x2 down-hop remainder (PREREG amendment 2)."""
++
++    p8_down_remainder = True
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/row_alias376_fc1.py b/b12x/moe/_shared/kernels/row_alias376_fc1.py
+--- a/b12x/moe/_shared/kernels/row_alias376_fc1.py	2026-09-09 09:13:11.000000000 -0400
++++ b/b12x/moe/_shared/kernels/row_alias376_fc1.py	2026-09-25 20:35:28.952330926 -0400
+@@ -13,6 +13,7 @@
+ import cuda.bindings.driver as cuda
+ import cutlass
+ import cutlass.cute as cute
++from b12x._lib.intrinsics import cvt_e4m3x4_to_f32x4
+ 
+ from cutlass.cutlass_dsl import Int32, Int64, T, Uint32, dsl_user_op
+ from cutlass._mlir.dialects import llvm
+@@ -1194,6 +1195,29 @@
+                     (sf_base + output_tile * rows_capacity + physical_row_base + tid)
+                     * Int32(4) + block
+                 ] = cutlass.Uint8(scale_byte & Uint32(0xFF))
++                if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++                    # D-x2: second E4M3/UE8M0-K32 plane, lo = v - dq(hi), after the whole hi region.
++                    dx2_vals = values
++                    if cutlass.const_expr(self.w4a8_trellis):
++                        dx2_vals = _w4a8_trellis_permute_k32(values)
++                    dx2_scale, _ = pow2_ceil_ue8m0(block_max * cutlass.Float32(1.0 / 448.0))
++                    dx2_lo = cute.make_rmem_tensor((32,), cutlass.Float32)
++                    dx2_max = cutlass.Float32(0.0)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        dx2_h0, dx2_h1, dx2_h2, dx2_h3 = cvt_e4m3x4_to_f32x4(payload[dx2_w])
++                        dx2_lo[dx2_w * 4 + 0] = dx2_vals[dx2_w * 4 + 0] - dx2_h0 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 1] = dx2_vals[dx2_w * 4 + 1] - dx2_h1 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 2] = dx2_vals[dx2_w * 4 + 2] - dx2_h2 * dx2_scale
++                        dx2_lo[dx2_w * 4 + 3] = dx2_vals[dx2_w * 4 + 3] - dx2_h3 * dx2_scale
++                    for dx2_e in cutlass.range_constexpr(32):
++                        dx2_abs = fabs_f32(dx2_lo[dx2_e])
++                        if dx2_abs > dx2_max:
++                            dx2_max = dx2_abs
++                    dx2_payload, dx2_byte = quantize_block_fp8_mx(dx2_lo, dx2_max)
++                    dx2_off = rows_capacity * (words_per_row + intermediate_tiles)
++                    for dx2_w in cutlass.range_constexpr(8):
++                        intermediate_u32[dx2_off + dst_word + Int32(dx2_w)] = dx2_payload[dx2_w]
++                    scale_bytes[(dx2_off + sf_base + output_tile * rows_capacity + physical_row_base + tid) * Int32(4) + block] = cutlass.Uint8(dx2_byte & Uint32(255))
+ 
+         # Only the first 64 threads perform the row-wise quantize/store.  The
+         # other warps must not advance the persistent task loop and overwrite
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/kernels/w4a8_phase2.py b/b12x/moe/_shared/kernels/w4a8_phase2.py
+--- a/b12x/moe/_shared/kernels/w4a8_phase2.py	2026-09-07 21:22:01.000000000 -0400
++++ b/b12x/moe/_shared/kernels/w4a8_phase2.py	2026-09-25 20:35:28.952571764 -0400
+@@ -228,6 +228,42 @@
+                 get_ptr_as_int64(intermediate_u32, sf_src),
+             )
+ 
++        if cutlass.const_expr(getattr(self, "p8_down_remainder", False)):
++            # D-x2: stage the lo plane (hi layout, offset by the whole hi region).
++            dx2_off = rows_capacity * (words_per_row + intermediate_tiles)
++            dx2_a_base = smem_base + Int32(self.dx2_a_offset) + stage * Int32(self.a_stage_bytes)
++            dx2_sfa_base = dx2_a_base + Int32(self.a_payload_bytes)
++            for i in cutlass.range_constexpr(
++                (self.tile_m * 8 + self.threads_per_cta - 1) // self.threads_per_cta
++            ):
++                idx = tid + Int32(i * self.threads_per_cta)
++                if idx < Int32(self.tile_m * 8):
++                    row = idx >> Int32(3)
++                    vec = idx & Int32(7)
++                    physical_vec = vec ^ (row & Int32(7))
++                    src_word = (
++                        dx2_off
++                        + (physical_row_base + row) * words_per_row
++                        + intermediate_slice * Int32(32)
++                        + (vec << Int32(2))
++                    )
++                    cp_async4_shared_global(
++                        dx2_a_base + row * Int32(self.tile_k) + (physical_vec << Int32(4)),
++                        get_ptr_as_int64(intermediate_u32, src_word),
++                    )
++            if tid < Int32(self.tile_m):
++                dx2_sf_src = (
++                    dx2_off
++                    + rows_capacity * words_per_row
++                    + intermediate_slice * rows_capacity
++                    + physical_row_base
++                    + tid
++                )
++                cp_async_u32_shared_global(
++                    dx2_sfa_base + (tid << Int32(2)),
++                    get_ptr_as_int64(intermediate_u32, dx2_sf_src),
++                )
++
+         if cutlass.const_expr(self.w4a8_trellis):
+             # Expert-major [E][K16][N16] trellis windows over the down
+             # projection (K = intermediate, N = hidden); stage the slice's
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/trellismx/direct_policy_scratch.py b/b12x/moe/_shared/trellismx/direct_policy_scratch.py
+--- a/b12x/moe/_shared/trellismx/direct_policy_scratch.py	2026-09-09 10:43:34.000000000 -0400
++++ b/b12x/moe/_shared/trellismx/direct_policy_scratch.py	2026-09-25 20:35:28.954962266 -0400
+@@ -2,11 +2,11 @@
+ from dataclasses import replace
+ from .policy_smallm_schedule import p8_small_m_scratch_layout, P8ScratchRegion
+ 
+-def direct_scratch_layout(tokens, intermediate=512, *, tile_m=16):
++def direct_scratch_layout(tokens, intermediate=512, *, tile_m=16, planes=1):
+     if not 1 <= tokens <= 16 or tile_m not in (16, 32):
+         raise ValueError("direct policy requires M1..16 and tile M16/M32")
+     base = p8_small_m_scratch_layout(tokens=tokens, intermediate=intermediate,
+-                                    shared=True, grouped=False, tile_m=tile_m, direct=True)
++                                    shared=True, grouped=False, tile_m=tile_m, direct=True, planes=planes)
+     regions, cursor = [], 0
+     for region in base.regions:
+         if region.name == 'output':
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/trellismx/p8_native_kernel.py b/b12x/moe/_shared/trellismx/p8_native_kernel.py
+--- a/b12x/moe/_shared/trellismx/p8_native_kernel.py	2026-09-09 13:41:42.000000000 -0400
++++ b/b12x/moe/_shared/trellismx/p8_native_kernel.py	2026-09-25 20:35:28.955082270 -0400
+@@ -107,6 +107,14 @@
+         fc1_broadcast_a: bool | None = None,
+     ) -> None:
+         self.device = torch.device(device)
++        # D-x2 (PREREG amendment 2): captured once; joins the compile spec below.
++        self.p8_down_remainder = os.environ.get("B12X_P8_DOWN_REMAINDER") == "1"
++        self._dx2_planes = 2 if self.p8_down_remainder else 1
++        self._dx2_phases = os.environ.get("B12X_P8_DOWN_REMAINDER_PHASES", "both")
++        self.p8_dx2_rowpack = os.environ.get("B12X_P8_DOWN_REMAINDER") in ("rp", "rp2")
++        self.p8_input_rowpack = os.environ.get("B12X_P8_DOWN_REMAINDER") == "rp2"
++        if self.p8_dx2_rowpack:
++            print(f"P8_DX2_ROWPACK_ACTIVE layer={layer} rank={tp_rank} input_hop={int(self.p8_input_rowpack)}", flush=True)
+         self.grouped_m16 = bool(grouped_m16)
+         self.fuse_grouped_scratch = bool(fuse_grouped_scratch)
+         self.tile_major_tasks = bool(tile_major_tasks)
+@@ -422,6 +430,16 @@
+             deterministic_output=self.deterministic_output,
+             swiglu_limit=self.swiglu_limit,
+         )
++        if self.p8_down_remainder:
++            if not self.full_coupled:
++                raise RuntimeError("D-x2 is implemented for the full-coupled P8 paths only")
++            from b12x.moe._shared.kernels.p8_down_remainder import enable_down_remainder
++            enable_down_remainder(kernel, self._dx2_phases)
++        if self.p8_dx2_rowpack and small_m:
++            if not self.full_coupled:
++                raise RuntimeError("D-x2-RP is implemented for the full-coupled P8 paths only")
++            from b12x.moe._shared.kernels.p8_down_remainder import enable_rowpack
++            enable_rowpack(kernel, input_hop=self.p8_input_rowpack)
+         if self.diagnostic_raw_fc1:
+             if not (small_m and self.full_coupled):
+                 raise RuntimeError(
+@@ -559,6 +577,10 @@
+                 ("input_prequant_diagnostic", int(self.diagnostic_raw_fc1)),
+                 ("codebook", "mcg"),
+                 ("deterministic_output", int(self.deterministic_output)),
++                ("down_remainder", int(self.p8_down_remainder)),
++                ("down_remainder_phases", self._dx2_phases if self.p8_down_remainder else "none"),
++                ("dx2_rowpack", int(self.p8_dx2_rowpack and small_m)),
++                ("dx2_input_rowpack", int(self.p8_input_rowpack and small_m)),
+             ),
+             dsl_compile_options=OptLevel(2),
+         )
+@@ -658,10 +680,10 @@
+         if fused_scratch_zero or self.shared_workspace:
+             if fused_scratch_zero:
+                 from .direct_policy_scratch import direct_scratch_layout
+-                self._scratch_layout = (direct_scratch_layout(m, self.intermediate, tile_m=tile_m) if small_m
+-                    else p8_small_m_scratch_layout(intermediate=self.intermediate, tokens=m,
++                self._scratch_layout = (direct_scratch_layout(m, self.intermediate, tile_m=tile_m, planes=self._dx2_planes) if small_m
++                    else p8_small_m_scratch_layout(intermediate=self.intermediate, tokens=m, planes=self._dx2_planes,
+                         shared=True, grouped=True, tile_m=tile_m, direct=False))
+-            layout = (p8_small_m_scratch_layout(intermediate=self.intermediate, tokens=m, shared=True,
++            layout = (p8_small_m_scratch_layout(intermediate=self.intermediate, tokens=m, shared=True, planes=self._dx2_planes,
+                           grouped=self.full_coupled and materialized and not small_m, tile_m=tile_m, direct=small_m)
+                       if self.shared_workspace else self._scratch_layout)
+             assert layout is not None
+@@ -722,7 +744,7 @@
+             scale_flat = torch.zeros(
+                 scale_elements, dtype=torch.uint8, device=self.device
+             )
+-            intermediate_count = rows_padded * (self.intermediate + self.intermediate // 32) // 4
++            intermediate_count = self._dx2_planes * rows_padded * (self.intermediate + self.intermediate // 32) // 4
+             intermediate_u32 = torch.zeros(intermediate_count, dtype=torch.int32, device=self.device)
+ 
+             def z1():
+diff -ruN -x __pycache__ -x .git -x build -x '*.egg-info' a/b12x/moe/_shared/trellismx/policy_smallm_schedule.py b/b12x/moe/_shared/trellismx/policy_smallm_schedule.py
+--- a/b12x/moe/_shared/trellismx/policy_smallm_schedule.py	2026-09-09 10:36:45.000000000 -0400
++++ b/b12x/moe/_shared/trellismx/policy_smallm_schedule.py	2026-09-25 20:35:28.954933092 -0400
+@@ -56,7 +56,7 @@
+     nbytes: int
+ 
+ 
+-def p8_small_m_scratch_layout(*, intermediate: int = 512, tokens: int = 1, shared: bool = False, grouped: bool = False, tile_m: int | None = None, direct: bool | None = None) -> P8ScratchLayout:
++def p8_small_m_scratch_layout(*, intermediate: int = 512, tokens: int = 1, shared: bool = False, grouped: bool = False, tile_m: int | None = None, direct: bool | None = None, planes: int = 1) -> P8ScratchLayout:
+     """Exact M1 buffer extents, each starting at a 16-byte-aligned offset.
+ 
+     The route-output allocation is intentionally excluded. Padding between
+@@ -81,7 +81,7 @@
+         ("scale_flat", "uint8",
+          (scale_elements,)),
+         ("intermediate_u32", "int32",
+-         (rows * (geometry.intermediate + geometry.intermediate // 32) // 4,)),
++         (planes * rows * (geometry.intermediate + geometry.intermediate // 32) // 4,)),
+     ]
+     specs.extend((name, "int32", (1,)) for name in (
+         "barrier_count", "barrier_epoch", "pair_head", "producers_done",

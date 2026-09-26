@@ -272,3 +272,32 @@ KV capacity (engine log):
 - Capture profile (GMU 0.97, 1 seq): NVFP4 31,565,217 tokens; FP8 19,362,962 tokens.
 
 Production was restored healthy at 21:17:30 (down 20:29:49 to 21:17:30).
+
+## Amendment 6: both-hop row-pack D-x2-RP2 (preregistered gates)
+
+The smoke test on layer 8, rank 0, passed:
+- deterministic and finite;
+- M1/M4/M16: RP2 differs from prod by 3.7-3.9% and from RP by 2.7-2.8%;
+- M64/M512: bit-identical to prod.
+
+**K4 closure: PASS.** Four ranks summed, Test B fit tokens.
+
+| layer | path | D_kernel(prod)/D_ref(P-A8) | RP2/prod (kernel) | reference both-hops P-A8x2/P-A8 |
+|---|---|---|---|---|
+| 3 | M1 (96 tok) | 1.0025 | 0.2531 | 0.2514 |
+| 3 | M16 | 1.0015 | 0.5494 | 0.5486 |
+| 8 | M1 (96 tok) | 1.0008 | 0.5154 | 0.5150 |
+| 8 | M16 | 1.0003 | 0.8689 | 0.8689 |
+
+M64 and M3072 are bit-identical to prod on both layers.
+
+**A4 timing: PASS.** RP2/prod medians over 240 blocks:
+
+| layer | M1 | M4 | M16 |
+|---|---|---|---|
+| 8 K4 | 1.0263 | 1.0064 [1.0009, 1.0128] | 0.9405 |
+| 3 K5 | 1.0273 | 0.9879 [0.9843, 0.9917] | 1.0024 |
+
+The input-hop row-pack adds essentially no cost on top of the down-hop RP. Layer-level
+both-hop damage on the fresh B2 layers (reference `P-A8x2`) has a geometric mean of about
+0.68 (-32%), against 0.744 for down-only.

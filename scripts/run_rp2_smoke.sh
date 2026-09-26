@@ -4,7 +4,7 @@
 set -euo pipefail
 HERE=<workspace>/p8-remainder-kvrot-20260923
 GPU=${GPU:-0}
-exec docker run --rm --name p8-dx2-k2-20260923 --gpus "\"device=${GPU}\"" --network none \
+exec docker run --rm --name p8-rp2-smoke-20260925 --gpus "\"device=${GPU}\"" --network none \
   -e HOME=/work/cache/home -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
   -e B12X_COMPILE_MEMORY_CACHE=0 -e B12X_COMPILE_DISK_CACHE=0 \
   -e B12X_COMPILE_CACHE_DIR=/work/cache/b12x-compile -e B12X_CUTE_COMPILE_CACHE_DIR=/work/cache/b12x-cute \
@@ -16,11 +16,11 @@ exec docker run --rm --name p8-dx2-k2-20260923 --gpus "\"device=${GPU}\"" --netw
   -e B12X_DYNAMIC_SPLIT_COMPUTE_MAC=224 -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
   -e ZR_LAYERS="${ZR_LAYERS:-8,3}" -e ZR_MS="${ZR_MS:-1,4,16}" -e ZR_BLOCKS="${ZR_BLOCKS:-40}" \
   -e ZR_REPLAYS="${ZR_REPLAYS:-200}" -e ZR_INPUT_SETS="${ZR_INPUT_SETS:-4}" \
-  -e K2_LAYERS="${K2_LAYERS:-3,8}" -e K2_ARMS="${K2_ARMS:-prod,dx2}" -e K2_BUILD="${K2_BUILD:-dx2build}" -e ZR_OUT="${ZR_OUT:-/work/results/timing_raw.json}" \
-  -v "$HERE/${B12X_TREE:-b12x-dx2}:/opt/glm53-flash/b12x:ro" \
+  -e ZR_OUT="${ZR_OUT:-/work/results/timing_raw.json}" \
+  -v "$HERE/b12x-dx2rp2:/opt/glm53-flash/b12x:ro" \
   -v <model-volume>/glm53-trellismx-native6/trellismx-r27-local-checkpoint-v1:/checkpoint:ro \
   -v <data-volume>:<data-volume>:ro \
   -v "$HERE:/work" \
   --entrypoint /bin/bash \
   verdictai/trellismx@sha256:ca6b80188dce154b91f49108b7d87792d2ba6328935afc71b44d1c0e6f6a1adf \
-  -c '/opt/venv/bin/python /work/scripts/dx2_closure.py; rc=$?; chown -R "$HOST_UID:$HOST_GID" /work/results /work/cache; exit $rc'
+  -c '/opt/venv/bin/python /work/scripts/rp2_smoke.py; rc=$?; chown -R "$HOST_UID:$HOST_GID" /work/results /work/cache; exit $rc'
