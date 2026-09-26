@@ -84,6 +84,8 @@ def main() -> None:
     else:
         json.dump({"cells": rows, "status": "PASS" if ok else "FAIL", "layers": LAYERS, "ranks": RANKS}, open(OUT, "w"), indent=1)
         print(json.dumps({"status": "PASS" if ok else "FAIL", "cells": len(rows)}), flush=True)
+        if not ok:
+            sys.exit(1)
 
 
 if __name__ == "__main__":

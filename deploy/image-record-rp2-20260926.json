@@ -16,7 +16,7 @@
   "dockerfile_sha256": "7354c131fd557415201c0e8adbf0b49718795c944e60859c9b9455dad3f7697b",
   "serve_script_sha256": "75c4eac28dbeafc0150398201b6a7ed5f53c1017ae6bb714b34e8c2e92f1d3cf",
   "compose_sha256": "0c63c3e4274bf24d6f1904826970045991f45ea13be91ddd27be899b1ac9258e",
-  "kernel_source": "github.com/brandonmmusic-max/glm53-trellismx-remainder-kld: patches/b12x-dx2-rowpack-rp2.diff + patches/b12x-dx2-guards.diff; EPI-PAR (M1 FC1 epilogue, bit-identical) described in the release notes"
+  "kernel_source": "github.com/brandonmmusic-max/glm53-trellismx-remainder-kld: patches/b12x-dx2-rowpack-rp2.diff, then patches/b12x-dx2-guards.diff, then patches/b12x-epipar-m1.diff (EPI-PAR in the M1 FC1 kernel), applied in that order"
  },
  "defaults": {
   "B12X_P8_DOWN_REMAINDER": "rp2",
@@ -30,7 +30,7 @@
   "GPU_MEMORY_UTILIZATION": "0.88"
  },
  "verification": {
-  "kernel_identity": "56/56 cells bit-identical to the measured RP2 and r27 kernels (layers 3/8/23/43, ranks 0/3, M1/M4/M16/M64)",
+  "kernel_identity": "56/56 cells bit-identical to the measured RP2 and r27 kernels (layers 3/8/23/43, ranks 0/3, M1/M4/M16/M64); the 128-window KLD was measured on the RP2 tree and carries over through this bounded identity check",
   "kld_128_windows_fp8_kv": {
    "rp2": 0.03260408965478527,
    "r27_reference_kernels": 0.034282591712284864,

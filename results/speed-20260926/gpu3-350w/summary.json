@@ -1,0 +1,73 @@
+{
+ "conditions": "production server (RP2 image a0392e1c, TP4/DCP4, MTP3, 48 seqs, 8192 batch, GMU 0.88, FP8 KV), greedy fixed-input bench_fixed.py C1 cells (20 s, temperature 0) and llm_decode_bench v0.4.29 --prefill-only 20 s; weekly ingest paused (SIGSTOP) and production idle during the run; GPU3 +150 MHz GPC offset in both passes; other GPUs 300 W; single runs; 2026-09-26 ~14:07-14:29",
+ "passes": {
+  "gpu3_350w": {
+   "C1 0": {
+    "tps": 203.6,
+    "mtp_accept": 0.498,
+    "steps_per_s_approx": 81.7
+   },
+   "C1 8k": {
+    "tps": 210.6,
+    "mtp_accept": 0.5,
+    "steps_per_s_approx": 84.2
+   },
+   "C1 32k": {
+    "tps": 198.9,
+    "mtp_accept": 0.475,
+    "steps_per_s_approx": 82.0
+   },
+   "C1 128k": {
+    "tps": 212.3,
+    "mtp_accept": 0.586,
+    "steps_per_s_approx": 76.9
+   },
+   "prefill": {
+    "8192": 9163.0,
+    "32768": 9426.0,
+    "131072": 9294.0
+   }
+  },
+  "gpu3_300w": {
+   "C1 0": {
+    "tps": 190.2,
+    "mtp_accept": 0.498,
+    "steps_per_s_approx": 76.3
+   },
+   "C1 8k": {
+    "tps": 217.6,
+    "mtp_accept": 0.627,
+    "steps_per_s_approx": 75.5
+   },
+   "C1 32k": {
+    "tps": 204.7,
+    "mtp_accept": 0.539,
+    "steps_per_s_approx": 78.2
+   },
+   "C1 128k": {
+    "tps": 207.6,
+    "mtp_accept": 0.662,
+    "steps_per_s_approx": 69.5
+   },
+   "prefill": {
+    "8192": 8491.0,
+    "32768": 8879.0,
+    "131072": 8722.0
+   }
+  }
+ },
+ "gpu_clock_medians_under_load_mhz": {
+  "gpu3_350w": {
+   "GPU0": 2227,
+   "GPU1": 2280,
+   "GPU2": 2212,
+   "GPU3": 2625
+  },
+  "gpu3_300w": {
+   "GPU0": 2242,
+   "GPU1": 2407,
+   "GPU2": 2227,
+   "GPU3": 2085
+  }
+ }
+}

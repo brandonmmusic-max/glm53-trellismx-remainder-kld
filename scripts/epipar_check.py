@@ -119,6 +119,8 @@ def main() -> None:
     with open(OUT, "w") as fh:
         json.dump(out, fh, indent=1)
     print(json.dumps({"status": "done", "identity_gate": out["identity_gate"]}), flush=True)
+    if out["identity_gate"] != "PASS":
+        sys.exit(1)
 
 
 if __name__ == "__main__":

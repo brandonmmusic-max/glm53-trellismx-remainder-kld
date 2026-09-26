@@ -68,10 +68,13 @@ The findings, in the order the tests ran:
    default, together with the host-side guards and EPI-PAR, a parallel version of the M1 epilogue
    (exploratory, section 4.10).
    - A pre-flight check found the image's kernels bit-identical to the measured ones in 56 of 56
-     cells.
+     cells. The 128-window KL result carries over to the image through that bounded check; the
+     image itself was not re-measured.
    - In same-window single-run A/Bs against the r27 reference configuration (NVFP4 KV), the
      release configuration was -2.0% to +12.0% in decode and +5.7% to +7.5% in prefill. These
      runs cannot separate the kernels from the KV cache or from MTP acceptance (section 7).
+   - Raising GPU 3's power limit from 300 W to 350 W afterwards made prefill on the production
+     server 6-8% faster (section 7.4).
 
 **Scope.**
 - **KV cache.** RP2 was KL-measured only with FP8 KV. Production used NVFP4 KV during the study,
@@ -376,8 +379,9 @@ that reads it, and there is no reason to spend a production window on it.
 - Row 0 comes from prefill and is excluded, leaving 2,046 true-decode rows per window.
 
 **Why.**
-- RP and RP2 change only the direct decode kernels. A prefill-scored KL measurement would push
-  every token through the unchanged prefill kernels and could not see them.
+- RP and RP2 change only the direct kernels, which run the steps with at most 16 tokens. A
+  prefill-scored KL measurement would compute each 2,048-token window in prompt-prefill steps of
+  far more than 16 tokens. Those run the unchanged kernels, so it could not see RP or RP2.
 - Forcing the tokens keeps every arm on an identical history, so rows line up exactly across arms
   and the comparison is row for row.
 - Reusing the published protocol makes our controls comparable with the published 09-09 values.
@@ -507,7 +511,7 @@ on the original 32 windows (paired BCa95, relative to the earlier run; `reported
   - Production speed profile: MTP with 3 speculative tokens, 48 sequences, 8192 batched tokens,
     GPU memory utilization 0.88.
 - **Hardware.** Four NVIDIA RTX PRO 6000 Blackwell GPUs (two Max-Q, two Workstation Edition), PCIe,
-  300 W limit each.
+  300 W limit each during the study. GPU 3's limit was raised to 350 W afterwards (section 7.4).
 
 ## 4. Results
 
@@ -946,7 +950,7 @@ production server):
 - In the M2-16 kernel it made L8 M16 about 5% slower. The M1-only build was therefore kept, and it
   is the one in the release image.
 - In the M1-only build, cells whose code is identical in both arms differ by up to 1.9%. That is
-  the noise floor of these cells.
+  the observed timing variation between identical-code cells in this run.
 - This run measured RP2's own M1 cost at 1.032 (L8) and 1.060 (L3), above A4's 1.026 and 1.027.
   The conditions differ: GPU 1 next to the resident production server here, and four interleaved
   arms instead of two.
@@ -1091,6 +1095,18 @@ all five, and it has not been re-reviewed:
 - **Exit status.** `scripts/rp2_guard_smoke.py` exits nonzero when a check fails.
 - **Patch notes.** `patches/README.md` states which patches stack.
 
+**Fourth round (release sign-off, on commit 068f51c).** Five reviews checked the release
+materials of section 7 and the model card. One signed off. Four asked for fixes; the model-card
+fixes were made on the card, and this update makes the rest (not re-reviewed):
+- `scripts/epipar_check.py` and `scripts/final_identity_check.py` exit nonzero when a check
+  fails.
+- The EPI-PAR reading calls the 1.9% spread the observed timing variation between identical-code
+  cells, not a noise floor.
+- Section 3.7 states the prefill argument by tokens per step.
+- Section 7 states how the KL result carries over to the release image, records how the DCP4
+  window's zero clock offsets are known, and marks the underfilled DCP4 cell in the table.
+- The image record's `kernel_source` names all three patches in order.
+
 ## 7. RP2 release image (2026-09-26)
 
 After the study and the audit, the RP2 kernels were released as a public image. Nothing in this
@@ -1121,11 +1137,12 @@ compares its kernels with the measured ones, and the speed A/Bs are descriptive 
   - `serve-rp2.sh` and the `Dockerfile`;
   - `image-record-rp2-20260926.json`, the image record. Its sha256 values for the other three
     files match the copies here.
-- **Relation to the measured arm.** The `rp2-fp8` arm of the final run used the `b12x-dx2rp2`
-  tree, without guards and without EPI-PAR.
+- **Relation to the measured arm.** The 128-window KLD (section 4.9) was measured on the
+  `b12x-dx2rp2` tree mounted in the capture image, without guards and without EPI-PAR.
   - The guards are host-side checks and change no kernel code.
   - EPI-PAR is designed to be bit-identical, and the pre-flight below found it so.
-  - The image's KL divergence was not measured again.
+  - The KLD result carries over to the release image through that bounded identity check (56/56
+    tested cells, section 7.2). The release image itself was not re-measured.
 - **Production.** Production switched to this image with FP8 KV at the end of the DCP4 speed
   window below (`results/speed-20260926/dcp4/window.log`).
 
@@ -1151,6 +1168,9 @@ Scripts `final_identity_check.py` and `run_final_identity.sh`; result
 - **Which image.** The pre-flight ran on the release image by its tag on the build host, before
   the push. The DCP4 speed window recorded the local id of the image it ran as
   `sha256:a0392e1c...`, the pushed digest (`results/speed-20260926/dcp4/candidate/image.json`).
+  The DCP1 launch records name the image by tag only.
+- **Bounded.** The check covers the tested layers, ranks and M paths. It supports identity on
+  those cells, not a proof for every input.
 
 ### 7.3 Speed: two same-window A/Bs
 
@@ -1162,7 +1182,8 @@ configuration (reference image, NVFP4 KV).
 - `results/speed-20260926/speed-summary-20260926.json` collects both tables and their conditions.
 
 **DCP1, greedy fixed-input method.** TP4/DCP1, MTP3, 24 sequences, 4,096 batched tokens, GMU 0.97.
-Measured 2026-09-26, 12:31-13:04, RP2 arm first (`results/speed-20260926/dcp1/`).
+Measured 2026-09-26 between 12:31 (first server start) and 13:04, RP2 arm first
+(`results/speed-20260926/dcp1/`).
 - **Decode.** `bench_fixed.py` runs the unchanged `llm_decode_bench.py` v0.4.29 with a fixed
   run-ID prompt prefix and temperature 0. Exact token targeting, 20 s cells, at most 8,192
   tokens.
@@ -1199,7 +1220,7 @@ batched tokens, GMU 0.88. Measured 2026-09-26, 05:28-06:42, reference arm first
 | C8 decode, 0K | 581.5 (0.58) | 569.9 (0.50) | 0.980 |
 | C8 decode, 8K | 478.1 (0.62) | 499.3 (0.59) | 1.044 |
 | C8 decode, 16K | 469.7 (0.51) | 474.5 (0.65) | 1.010 |
-| C8 decode, 32K | 471.0 (0.63)* | 473.9 (0.60) | 1.006 |
+| C8 decode, 32K | 471.0 (0.63), underfilled* | 473.9 (0.60) | 1.006 |
 | C1 decode, 0K | 186.7 (0.60) | 195.0 (0.48) | 1.044 |
 | C1 decode, 8K | 188.7 (0.66) | 197.8 (0.57) | 1.049 |
 | C1 decode, 16K | 184.6 (0.47) | 190.3 (0.79) | 1.031 |
@@ -1212,7 +1233,8 @@ batched tokens, GMU 0.88. Measured 2026-09-26, 05:28-06:42, reference arm first
 | prefill, 64K | 8,219 | 8,716 | 1.060 |
 | prefill, 128K | 8,072 | 8,559 | 1.060 |
 
-\* The benchmark flagged this cell as underfilled: 7.8 requests running on average instead of 8.
+\* The benchmark flagged this control cell as underfilled (`underfilled: true` in
+`dcp4/control/decode-ctx32768-c8.json`): 7.8 requests running on average instead of 8.
 
 **Reading.**
 - **Three changes at once.** Each A/B changes the kernels (RP2 with EPI-PAR), the KV cache (FP8
@@ -1233,9 +1255,13 @@ batched tokens, GMU 0.88. Measured 2026-09-26, 05:28-06:42, reference arm first
   DCP1 table, which differs from them in DCP.
 - **Hardware.** Four RTX PRO 6000 Blackwell GPUs at a 300 W power limit each, with a +6000 memory
   clock offset. GPU3, a 600 W-class card held to 300 W, runs at lower sustained clocks than its
-  twin, GPU1, under the same load and settings. Both DCP1 arms ran with a +150 MHz GPC clock
-  offset on GPU3 (`dcp1/run.log` and the conditions in `speed-summary-20260926.json`). The DCP4
-  window ran with no clock offsets.
+  twin, GPU1, under the same load and settings. GPU3's limit was raised to 350 W after these A/Bs
+  (section 7.4).
+  - **DCP1.** Both arms ran with a +150 MHz GPC clock offset on GPU3 (`dcp1/run.log` and the
+    conditions in `speed-summary-20260926.json`).
+  - **DCP4.** No clock offsets were applied during the window. The window itself did not record
+    clock state. An NVML read after the window, before any clock change, showed a GPC offset of 0
+    on every GPU.
 
 **KV capacity** (engine startup logs).
 - **Serving profile** (DCP4, GMU 0.88, 48 sequences): FP8 KV holds 8,127,659 tokens, against
@@ -1247,8 +1273,50 @@ batched tokens, GMU 0.88. Measured 2026-09-26, 05:28-06:42, reference arm first
 
 **Behaviour check.** The DCP4 harness also tried three behaviour profiles. Those calls exited at
 once with status 2 and no output, because v0.4.29 has no `--reasoning-effort` option
-(`window.log`). A behaviour check (LAVD, Estonia and Hotel Lights, 10 runs each) is running
-separately. Its results will be added.
+(`window.log`). A behaviour check (LAVD, Estonia and Hotel Lights, 10 runs each) was run
+separately. Its results are not in this repository yet and will be added.
+
+### 7.4 GPU 3 at 350 W (2026-09-26)
+
+After the A/Bs above, the owner raised GPU 3's power limit from 300 W to 350 W.
+- GPU 3 is a Workstation card with a 600 W maximum.
+- The Max-Q cards (GPUs 0 and 2) stay at their 300 W hardware maximum. GPU 1, the other
+  Workstation card, stays at 300 W.
+
+**Check.** Two passes on the production server, which runs the release configuration: RP2 image,
+TP4/DCP4, MTP3, 48 sequences, 8,192 batched tokens, GMU 0.88, FP8 KV
+(`results/speed-20260926/gpu3-350w/`, 2026-09-26, 14:15-14:30).
+- **Order.** The 350 W pass ran first, then a 300 W pass. Single runs.
+- **Method.** C1 decode with the greedy fixed-input method of the DCP1 table (`bench_fixed.py`,
+  temperature 0, 20 s cells, at most 8,192 tokens); prefill with `llm_decode_bench.py
+  --prefill-only`, cold, 20 s per context. `quick8000.sh` drove both passes.
+- **Conditions.** Both passes had the +150 MHz GPC offset on GPU 3. A scheduled weekly job that
+  uses the server was paused, and nothing else used the server.
+
+| cell | GPU 3 at 300 W | GPU 3 at 350 W | 350 W / 300 W |
+|---|---|---|---|
+| C1 decode, 0K | 190.2 (0.498) | 203.6 (0.498) | 1.071 |
+| C1 decode, 8K | 217.6 (0.627) | 210.6 (0.500) | 0.968 |
+| C1 decode, 32K | 204.7 (0.539) | 198.9 (0.475) | 0.972 |
+| C1 decode, 128K | 207.6 (0.662) | 212.3 (0.586) | 1.023 |
+| prefill, 8K | 8,491 | 9,163 | 1.079 |
+| prefill, 32K | 8,879 | 9,426 | 1.062 |
+| prefill, 128K | 8,722 | 9,294 | 1.066 |
+
+Decode values are tokens/s with MTP acceptance in parentheses, to three decimals as in
+`summary.json`.
+
+**Reading.**
+- **Clocks.** GPU 3's median SM clock under load went from 2,085 MHz to 2,625 MHz. The Max-Q
+  cards stayed at about 2,220 MHz (2,212-2,242 MHz) and now set the pace. GPU 1 ran at 2,407 MHz
+  in the 300 W pass and 2,280 MHz in the 350 W pass. "Under load" means polls in which all four
+  GPUs were at 90% utilization or more (`clocks.csv`; the medians are in `summary.json`).
+- **Prefill** was 6-8% faster at 350 W.
+- **Decode is confounded by MTP acceptance.** At equal acceptance (0K, 0.498 in both passes) it
+  was 7% faster. Dividing each rate by the expected tokens per step (1 + 3a) gives an approximate
+  step rate that is 5-12% higher at 350 W in every cell (`steps_per_s_approx` in `summary.json`).
+- **Scope.** Both passes ran the release configuration. This is a power-limit comparison, not an
+  A/B of RP2 against the reference kernels.
 
 ## 8. Reproduction
 
@@ -1335,8 +1403,9 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
    - `MODE=save scripts/run_final_identity.sh`, then `MODE=compare scripts/run_final_identity.sh`
      with the release image.
 10. **Release speed.** The harnesses are next to their results: `results/speed-20260926/dcp1/`
-    (`run.py`, `quick.sh`, `bench_fixed.py`) and `results/speed-20260926/dcp4/` (`window.py`). Like
-    the window scripts, they operate our host and are a record of the procedure.
+    (`run.py`, `quick.sh`, `bench_fixed.py`), `results/speed-20260926/dcp4/` (`window.py`) and
+    `results/speed-20260926/gpu3-350w/` (`quick8000.sh`). Like the window scripts, they operate
+    our host and are a record of the procedure.
 
 ### 8.4 Re-deriving the reported numbers (no GPU)
 
@@ -1359,7 +1428,11 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
 - **Release speed.** `python3 results/speed-20260926/dcp4/summarize.py` regenerates
   `summary.json` byte for byte from the raw files next to it; run it on a copy. The DCP1 values
   are `aggregate_tps` and `server_spec_accept_rate` of each `decode-*-c1.json`, and
-  `tok_per_sec` of each `prefill-quick.json`.
+  `tok_per_sec` of each `prefill-quick.json`. The GPU 3 check reads the same fields from
+  `gpu3-350w/w300/` and `gpu3-350w/w350/`. Its clock medians follow from `gpu3-350w/clocks.csv`
+  (columns: time, GPU, SM clock, power, utilization, temperature): take each four-GPU poll with
+  every GPU at 90% utilization or more, split at the gap between the passes (14:21:57-14:22:51),
+  and take the median per GPU.
 - **KL divergence.** Every production window includes three kinds of score record:
   - `scores/*.json`, the per-window records. Each window's `true_decode_mean_kld` is the mean of
     `kld[1:]` in the matching `.npz`.
@@ -1372,7 +1445,7 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
 
 **Not included:** `.pt` tensors, including the pre-flight's saved outputs; raw logits, which were
 retired after hashing and scoring; request/response captures; server and startup logs;
-telemetry; clock CSVs.
+telemetry and clock logs, except `results/speed-20260926/gpu3-350w/clocks.csv`.
 
 ## 9. Sources
 
@@ -1517,6 +1590,7 @@ results/
     speed-summary-20260926.json                          both tables and their conditions
     dcp1/                                                DCP1 A/B: outputs, launch argv, harness
     dcp4/                                                DCP4 A/B: outputs, audits, summary, harness
+    gpu3-350w/                                           GPU 3 at 300 W and 350 W (section 7.4)
 ```
 
 `RESULTS.md` and `PREREG.md` name files by their paths in the testing workspace:
@@ -1524,4 +1598,5 @@ results/
 - `results/b12x-dx2-guards.diff` is `patches/b12x-dx2-guards.diff`.
 
 The release speed harnesses name the workspace directories: `dcp1-speed-20260926/` there is
-`results/speed-20260926/dcp1/` here, and `bench-20260926/` is `results/speed-20260926/dcp4/`.
+`results/speed-20260926/dcp1/` here, `bench-20260926/` is `results/speed-20260926/dcp4/`, and
+`prod-speed-gpu3-20260926/` is `results/speed-20260926/gpu3-350w/`.
