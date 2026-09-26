@@ -389,3 +389,28 @@ cooling gate, compared with today's runs.
 
 **Close:** production is restored via `systemctl --user start trellismx-klc.service` and
 must finish before the 02:30 nightly job.
+
+## Chronology (added 2026-09-26 after the audit; amendment texts above are unchanged)
+
+These are the workspace git commits that added each part. They are self-asserted local timestamps (EDT), not an
+independent registration service. The public repository was created after the first two production windows, so its own
+history cannot show this order.
+
+| part | commit | committed | first data it governs |
+|---|---|---|---|
+| Preregistration (Tests A-C) | f0a5d99 | 2026-09-23 12:13:31 | Test A/B/C results committed 12:52:51 (0f64f6b) |
+| Amendment 1 | f527d0d | 2026-09-23 12:39:48 | Test C results, 12:52:51 |
+| Amendment 2 | 61757d2 | 2026-09-23 17:36:07 | K2 log written 17:49:02; A2 log 18:03:01 |
+| Amendment 3 | 0d7a0e6 | 2026-09-23 18:13:05 | K3 log 18:17:32; A3 log 18:21:04 |
+| Amendment 4 | caa6c2b | 2026-09-25 18:47:54 | window 1 started 19:00:43 |
+| Amendment 5 | 3ec4dab | 2026-09-25 20:26:35 | window 2 started 20:29:49 |
+| Amendment 6 | 7622e63 | 2026-09-25 20:36:09 | RP2 smoke 21:18, K4 and A4 started 21:19 |
+| Amendment 7 | 724782a | 2026-09-25 21:23:44 | window 3 started 21:25:35 |
+
+Header corrections:
+- Amendment 5's "~20:10" should read 20:26:35.
+- Amendment 6's "~20:40" should read 20:36:09.
+- Amendment 7's "~22:00" should read 21:23:44.
+
+Amendment 3 was written after the Amendment 2 timing results, in response to them, and before any D-x2-RP number.
+K2's M1 closure path used 96 tokens, not the 64 stated in Amendment 2.

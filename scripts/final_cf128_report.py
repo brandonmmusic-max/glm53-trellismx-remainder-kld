@@ -10,8 +10,10 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parents[1]
-W3 = HERE / "kld-cf128"
-PUB = Path("<workspace>/trellismx-reference-release-20260909/hf/results")
+# Works from the testing workspace (kld-*/ at the top level) and from the published repository (results/kld-*/).
+RES = HERE / "results" if (HERE / "results" / "kld-cf128" / "analysis.json").exists() else HERE
+W3 = RES / "kld-cf128"
+PUB = HERE / "results" / "reference-20260909"  # copies of the 09-09 published comparison files
 
 
 def pct(x: float) -> str:
@@ -64,7 +66,7 @@ def main() -> None:
     # Reported only: the original 32 windows against the earlier runs.
     by = lambda arm: {r["window_id"]: r["true_decode_mean_kld"] for r in a["arms"][arm]["per_window"]}  # noqa: E731
     first32 = ids[:32]
-    w2 = json.loads((HERE / "kld-fp8-20260925/analysis.json").read_text())["arms"]
+    w2 = json.loads((RES / "kld-fp8-20260925/analysis.json").read_text())["arms"]
     tr3_0909 = {r["window_id"]: r["true_decode_mean_kld"] for r in json.loads((PUB / "kld-tr3-20260909/comparison.json").read_text())["arms"]["fp8"]["per_window"]}
     w2c = {r["window_id"]: r["true_decode_mean_kld"] for r in w2["control-fp8"]["per_window"]}
     subset = {"control_fp8_window3": float(np.mean([by("control-fp8")[w] for w in first32])),
@@ -82,8 +84,8 @@ def main() -> None:
     speed = {}
     for cell in ("ctx0-c1", "ctx0-c4", "ctx8192-c1", "ctx8192-c4"):
         row = {}
-        for label, path in (("control_nvfp4_w1", HERE / "kld-rp-20260925/speed/control"), ("rp_nvfp4_w1", HERE / "kld-rp-20260925/speed/rp"),
-                            ("rp_fp8_w2", HERE / "kld-fp8-20260925/speed/rp-fp8"), ("rp2_fp8_w3", W3 / "speed/rp2-fp8")):
+        for label, path in (("control_nvfp4_w1", RES / "kld-rp-20260925/speed/control"), ("rp_nvfp4_w1", RES / "kld-rp-20260925/speed/rp"),
+                            ("rp_fp8_w2", RES / "kld-fp8-20260925/speed/rp-fp8"), ("rp2_fp8_w3", W3 / "speed/rp2-fp8")):
             f = path / f"{cell}.json"
             if f.exists():
                 r = json.loads(f.read_text())["results"][0]

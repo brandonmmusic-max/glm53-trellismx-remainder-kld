@@ -1,0 +1,2 @@
+elements equal: 0.999632  rows fully equal: 0.926636
+max |mirror - kernel|: 1.062e+00  kernel err energy 3.814041e+04  mirror 3.813979e+04  ratio 0.999984

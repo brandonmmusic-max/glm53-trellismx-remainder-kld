@@ -1,0 +1,33 @@
+{
+ "note": "Engine startup KV capacity lines of the speed servers (production serving profile: GMU 0.88, 48 sequences, TP4/DCP4, MTP3). Startup logs themselves are not published; hashes identify them.",
+ "rows": [
+  {
+   "server": "window1 control NVFP4 (production profile)",
+   "gpu_kv_cache_tokens": 12581699,
+   "log_line": "GPU KV cache size: 12,581,699 tokens, Maximum concurrency for 1,000,000 tokens per request: 12.58x",
+   "source": "kld-rp-20260925/speed/control/startup.log",
+   "source_sha256": "776fa38029b9b889a6768892ce734bcbf7c51d3155c5c00cabd8c6b135ae4b07"
+  },
+  {
+   "server": "window1 rp NVFP4 (production profile)",
+   "gpu_kv_cache_tokens": 12620915,
+   "log_line": "GPU KV cache size: 12,620,915 tokens, Maximum concurrency for 1,000,000 tokens per request: 12.62x",
+   "source": "kld-rp-20260925/speed/rp/startup.log",
+   "source_sha256": "1df33ff8625f82436baa49952cd741afccc33bb949638b758b19f5259bbafbd7"
+  },
+  {
+   "server": "window2 rp-fp8 FP8 (production profile)",
+   "gpu_kv_cache_tokens": 8127659,
+   "log_line": "GPU KV cache size: 8,127,659 tokens, Maximum concurrency for 1,000,000 tokens per request: 8.13x",
+   "source": "kld-fp8-20260925/speed/rp-fp8/startup.log",
+   "source_sha256": "dda133fb0cb0a47db55c6a4888b28a90bdaf1ab13d2dc7b699610b807815becc"
+  },
+  {
+   "server": "window3 rp2-fp8 FP8 (production profile)",
+   "gpu_kv_cache_tokens": 8127659,
+   "log_line": "GPU KV cache size: 8,127,659 tokens, Maximum concurrency for 1,000,000 tokens per request: 8.13x",
+   "source": "kld-cf128/speed/rp2-fp8/startup.log",
+   "source_sha256": "c09acf4895df2055d0bcbc70c2f46128c2569bcdf0bebc1a02e4bb2c824a661f"
+  }
+ ]
+}

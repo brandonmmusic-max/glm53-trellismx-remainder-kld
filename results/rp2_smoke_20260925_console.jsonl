@@ -1,0 +1,6 @@
+{"note": "Console output of scripts/rp2_smoke.py, 2026-09-25 21:18 EDT, GPU 2, tree b12x-dx2rp2, layer 8 rank 0 (recovered from the operator's terminal log; the script printed only). Flags: prod (False, False), rp (True, False), rp2 (True, True)."}
+{"m": 1, "rp2_deterministic": true, "finite": true, "rel_rp_vs_prod": 0.02675, "rel_rp2_vs_prod": 0.03742, "rel_rp2_vs_rp": 0.02744, "rp2_bit_identical_prod": false}
+{"m": 4, "rp2_deterministic": true, "finite": true, "rel_rp_vs_prod": 0.02684, "rel_rp2_vs_prod": 0.03883, "rel_rp2_vs_rp": 0.02843, "rp2_bit_identical_prod": false}
+{"m": 16, "rp2_deterministic": true, "finite": true, "rel_rp_vs_prod": 0.02653, "rel_rp2_vs_prod": 0.0381, "rel_rp2_vs_rp": 0.02758, "rp2_bit_identical_prod": false}
+{"m": 64, "rp2_deterministic": true, "finite": true, "rel_rp_vs_prod": 0.0, "rel_rp2_vs_prod": 0.0, "rel_rp2_vs_rp": 0.0, "rp2_bit_identical_prod": true}
+{"m": 512, "rp2_deterministic": true, "finite": true, "rel_rp_vs_prod": 0.0, "rel_rp2_vs_prod": 0.0, "rel_rp2_vs_rp": 0.0, "rp2_bit_identical_prod": true}

@@ -1,0 +1,88 @@
+{
+ "gpu": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+ "layer": 8,
+ "smoke": [
+  {
+   "m": 1,
+   "start_row": 14400,
+   "rp2_deterministic": true,
+   "finite": true,
+   "rel_rp_vs_prod": 0.02675115130841732,
+   "rel_rp2_vs_prod": 0.03741905838251114,
+   "rel_rp2_vs_rp": 0.027436578646302223,
+   "rp_bit_identical_prod": false,
+   "rp2_bit_identical_prod": false
+  },
+  {
+   "m": 4,
+   "start_row": 38976,
+   "rp2_deterministic": true,
+   "finite": true,
+   "rel_rp_vs_prod": 0.026843789964914322,
+   "rel_rp2_vs_prod": 0.038827743381261826,
+   "rel_rp2_vs_rp": 0.02843472734093666,
+   "rp_bit_identical_prod": false,
+   "rp2_bit_identical_prod": false
+  },
+  {
+   "m": 16,
+   "start_row": 112704,
+   "rp2_deterministic": true,
+   "finite": true,
+   "rel_rp_vs_prod": 0.026528991758823395,
+   "rel_rp2_vs_prod": 0.038095731288194656,
+   "rel_rp2_vs_rp": 0.027578741312026978,
+   "rp_bit_identical_prod": false,
+   "rp2_bit_identical_prod": false
+  },
+  {
+   "m": 64,
+   "start_row": 30817,
+   "rp2_deterministic": true,
+   "finite": true,
+   "rel_rp_vs_prod": 0.0,
+   "rel_rp2_vs_prod": 0.0,
+   "rel_rp2_vs_rp": 0.0,
+   "rp_bit_identical_prod": true,
+   "rp2_bit_identical_prod": true
+  },
+  {
+   "m": 512,
+   "start_row": 30817,
+   "rp2_deterministic": true,
+   "finite": true,
+   "rel_rp_vs_prod": 0.0,
+   "rel_rp2_vs_prod": 0.0,
+   "rel_rp2_vs_rp": 0.0,
+   "rp_bit_identical_prod": true,
+   "rp2_bit_identical_prod": true
+  }
+ ],
+ "guards": [
+  {
+   "case": "rp2 + fc1_warp_quant",
+   "expected_substring": "fc1_warp_quant",
+   "result": "RuntimeError: D-x2-RP/RP2 need fc1_warp_quant=False: the warp-quant FC1 epilogue has no remainder writer",
+   "rejected": true
+  },
+  {
+   "case": "rp2 without fc1_broadcast_a",
+   "expected_substring": "fc1_broadcast_a",
+   "result": "RuntimeError: D-x2-RP2 needs fc1_broadcast_a=True: otherwise ordinary FC1 staging also writes A row 8",
+   "rejected": true
+  },
+  {
+   "case": "rp + tile_major_tasks",
+   "expected_substring": "one route per direct tile",
+   "result": "RuntimeError: D-x2-RP/RP2 need one route per direct tile (tile_major_tasks=False, grouped_m16=False)",
+   "rejected": true
+  },
+  {
+   "case": "plane D-x2 + fc1_warp_quant",
+   "expected_substring": "fc1_warp_quant",
+   "result": "RuntimeError: D-x2 needs fc1_warp_quant=False: the warp-quant FC1 epilogue has no remainder writer",
+   "rejected": true
+  }
+ ],
+ "status": "PASS"
+}

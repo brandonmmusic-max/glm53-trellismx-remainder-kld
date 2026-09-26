@@ -2,10 +2,11 @@
 
 Brandon M. Music, September 2026
 
-**Status: complete (2026-09-26).**
+**Status: complete (2026-09-26). Corrected after an independent audit the same day (section 6).**
 
 This repository is the full record of one preregistered study:
-- the preregistration and its seven amendments (`PREREG.md`);
+- the preregistration, its seven amendments and a chronology of when each was committed
+  (`PREREG.md`);
 - the results log, written as results came in (`RESULTS.md`);
 - every script that produced a number (`scripts/`);
 - the raw and analysed result files (`results/`);
@@ -22,54 +23,68 @@ floating point (E4M3) inside the matrix multiply. Activations are rounded to E4M
 power-of-two scale per 32 values.
 
 The study asked two questions:
-- Can a second FP8 "remainder" term for the activations bring the model measurably closer to
-  its BF16 original without slowing decode?
+- Can a second FP8 "remainder" term for the activations bring the model measurably closer to its
+  BF16 original without slowing decode?
 - Can a fixed rotation make the 4-bit (NVFP4) attention KV cache more accurate?
 
 The findings, in the order the tests ran:
 
-1. **A second FP8 multiply per decoded weight fragment is not free at decode.** It cost 7-17%
-   of MoE-layer time. (Test A: FAIL.)
-2. **At layer level, two-term activations remove about half the error.** Carrying activations
-   as two FP8 terms (hi + lo) removes 51.0% of the routed-output error against the BF16
-   experts. (Test B.)
-3. **A fixed 512-point Hadamard rotation before the NVFP4 MLA KV cache does nothing.** The cached
-   latent is already Gaussian-shaped. (Test C: FAIL.)
-4. **A second data plane for the remainder is correct but too slow.** Adding the remainder only
-   at the down-projection input, in a second data plane, computes the right numbers (closure
+1. **A second FP8 multiply per decoded weight fragment is not free at decode.** It cost 7-17% of
+   MoE-layer time. (Test A: FAIL.)
+2. **At layer level, two-term activations remove about half the error.** Carrying activations as
+   two FP8 terms (hi + lo) removes 51.0% of the routed-output error against the BF16 experts.
+   (Test B.)
+3. **A fixed 512-point Hadamard rotation before the NVFP4 MLA KV cache gave no improvement on the
+   tested stand-in latents.** (Test C: FAIL.)
+4. **A second data plane for the remainder is correct but too slow.** Adding the remainder only at
+   the down-projection input, in a second data plane, reproduces the reference damage (closure
    PASS) but costs up to 19% of layer time (timing FAIL). (Amendment 2.)
-5. **Row-packing makes the remainder nearly free on the decode kernels.** The remainder goes into
-   a row of the tensor-core tile that those kernels already compute and throw away. This was
-   done first at the down-projection input (RP), then at both inputs (RP2), and every gate
-   passed. (Amendments 3 and 6.)
-6. **The final, preregistered end-to-end run** used all 128 conditional-fit windows with an FP8
-   KV cache (Amendment 7).
-   - The both-hop row-pack RP2 lowers true-decode KL divergence from the BF16 teacher by
-     **4.9%** (95% CI -7.3% to -1.8%) relative to the production kernels. Under the
-     preregistered rule that is an improvement.
-   - It does **not** reach TR3 4bpw: RP2 stays **8.3%** above it (95% CI +2.0% to +14.5%) and
-     is not equivalent within +/-5% or +/-10%.
-   - RP2 closes about 40% of the production kernels' gap to TR3.
-7. **The KV cache mattered more.** Switching the attention KV cache from NVFP4 to FP8 lowered KL
-   divergence by 10.9% (significant), at a cost of 35% of KV capacity. The earlier 32-window
-   checks of the down-hop-only RP were inconclusive: -5.6% with NVFP4 KV and -0.8% with FP8 KV,
-   and both intervals crossed 0.
+5. **Row-packing brings the kernel cost down to at most 2.7% of MoE-layer time at M1.** The
+   remainder goes into a row of the tensor-core tile that the decode kernels already compute and
+   throw away. This was done first at the down-projection input (RP), then at both inputs (RP2),
+   and every gate passed. (Amendments 3 and 6.)
+6. **The final, preregistered end-to-end run** used all 128 conditional-fit windows with an FP8 KV
+   cache (Amendment 7).
+   - **RP2 improves on the production kernels.** It lowers true-decode KL divergence from the
+     BF16 teacher by **4.9%** (95% CI -7.3% to -1.8%), the preregistered improvement reading.
+   - **RP2 stays 8.3% above TR3 4bpw** (+2.0% to +14.5%). Equivalence within +/-5% or +/-10% was
+     not established.
+   - **The TR3 gap depends on the text mix.** TR3 leads on legal and general text. With the four
+     domains weighted equally:
+     - rp2 - tr3 is +6.1% [-0.2%, +12.5%], an interval that includes 0;
+     - RP2 vs the control is -4.7% [-7.3%, -2.0%].
+   - **RP2 closes 40.1% of the control's gap to TR3** (95% [18.6%, 75.0%]).
+7. **The KV cache mattered more.**
+   - Switching the attention KV cache from NVFP4 to FP8 lowered KL divergence by 10.9% for the
+     control, at a cost of 35% of KV capacity. That comparison is cross-run and was not a
+     preregistered primary.
+   - The earlier 32-window checks of the down-hop-only RP were inconclusive: -5.6% with NVFP4 KV
+     and -0.8% with FP8 KV, and both intervals crossed 0.
 
-**Scope.** RP and RP2 change only the decode kernels that handle up to 16 tokens per step. The
-KL measurement pushes every token through those kernels. In serving, prompts are prefilled by
-unchanged kernels, so the served effect is expected to be smaller. That was not measured.
+**Scope.**
+- **KV cache.** RP2 was measured only with FP8 KV. Production uses NVFP4 KV, and RP2 was never run
+  with it.
+- **Kernel paths.** RP and RP2 change only the direct decode kernels. Dispatch is by tokens per
+  step: steps with M <= 16 tokens use them.
+  - The KL measurement pushes every token through those kernels.
+  - In serving, steps with more than 16 tokens, which covers most prompt prefills, use unchanged
+    kernels, so the served effect is expected to be smaller. That was not measured.
+- **Run-to-run stability.** Server-level shifts between repeat runs on different days reached
+  -2.4%, with CIs that exclude 0. That is about the size of the primaries' 1.8-2.0% margins from
+  0. The arms of the final run ran in one night, in a fixed order, so the conclusions assume
+  within-night stability. The one same-night repeat (-0.07%) supports that assumption.
 
 | Question | Test | Outcome |
 |---|---|---|
 | Is a second FP8 MMA per decoded weight fragment free at decode? | Test A: zero-remainder timing | **FAIL.** Median time ratio 1.0698 / 1.0854 at M1 and 1.1650 / 1.1484 at M4 (layers 8 / 3); the bar was <= 1.03. |
 | How much routed-output damage does a two-term (hi + lo) FP8 activation carrier remove? | Test B: layer level, 6 layers | Pooled damage ratio 0.490 (-51.0%), BCa 95% CI [0.427, 0.562]; 6/6 layers improve. |
-| Does a fixed H512 rotation before the NVFP4 MLA latent record reduce error? | Test C: 6 MLA layers | **FAIL.** Pooled ratio 1.0011 for latent NMSE and 1.0055 for attention-logit error. |
+| Does a fixed H512 rotation before the NVFP4 MLA latent record reduce error? | Test C: 6 MLA layers, stand-in latents | **FAIL.** No improvement on the tested stand-in latents: pooled ratio 1.0011 (latent NMSE) and 1.0055 (attention-logit error). |
 | Down-hop remainder in a second data plane (D-x2) | K2 / A2 / B2 | Closure PASS. Timing FAIL: 1.071-1.079 at M4, 1.163-1.187 in prefill. Fresh-layer damage 0.744 (-25.6%), B2 PASS. |
 | Down-hop remainder packed into the idle MMA row +8 (D-x2-RP) | K3 / A3 | Closure PASS. Timing PASS: median ratio <= 1.0272 at M1 and M4. |
 | End-to-end KLD, NVFP4 MLA KV, 32 windows | Amendment 4 | control 0.0350129 vs rp 0.0330631: -5.57%, paired BCa 95% [-0.005975, +0.000118]: **no detectable change**. |
-| End-to-end KLD, FP8 MLA KV, 32 windows | Amendment 5 | control-fp8 0.0311958 vs rp-fp8 0.0309337: -0.84%, [-0.001146, +0.001246]: **no detectable change**. FP8 vs NVFP4 KV for the control: -10.9% [-0.00898, -0.00171]. |
+| End-to-end KLD, FP8 MLA KV, 32 windows | Amendment 5 | control-fp8 0.0311958 vs rp-fp8 0.0309337: -0.84%, [-0.001146, +0.001246]: **no detectable change**. Cross-run, reported only: FP8 vs NVFP4 KV for the control -10.9% [-0.00898, -0.00171]. |
 | Remainder packed at both hops (D-x2-RP2) | K4 / A4 | Closure PASS. Timing PASS: median ratio <= 1.0273 at M1 and M4. |
-| **Final: 128 windows, FP8 MLA KV** | Amendment 7 | rp2 - control **-4.9% [-7.3%, -1.8%]**, lower in 105/128: **improvement**. rp2 - TR3 **+8.3% [+2.0%, +14.5%]**: **not tied**, not equivalent at +/-5% or +/-10%. |
+| **Final: 128 windows, FP8 MLA KV** | Amendment 7 | rp2 - control **-4.9% [-7.3%, -1.8%]**, lower in 105/128: **improvement**. rp2 - TR3 **+8.3% [+2.0%, +14.5%]**: RP2 above TR3, equivalence within +/-5% or +/-10% not established; with equal domain weights +6.1% [-0.2%, +12.5%]. |
 
 ## 1. What was tested, and why
 
@@ -89,18 +104,23 @@ the weights. There were two ideas.
 - A P8 layer has two error sources: the trellis-coded weights, and the E4M3 rounding of the
   activations that enter each of its two matrix multiplies.
 - In Test B, swapping the P8 weights for the exact BF16 weights, with production activations
-  kept, still left 13-59% of the routed-output error on the tested layers (the "activation
-  share" column below). Carrying the activations as two FP8 terms, a value plus its rounded
-  remainder, attacks that share directly.
-- The open question was cost. On a trellis kernel, decoding the weights is the expensive step,
-  so reusing a decoded weight fragment for a second multiply might be close to free.
-- Test A measured this, and it was not free. The row-pack variants (RP and RP2) then found a
-  place in the decode kernels where the second multiply really is free.
+  kept, still left 13-59% of the routed-output error on the tested layers (the "activation share"
+  column below).
+- Carrying the activations as two FP8 terms, a value plus its rounded remainder, attacks that
+  share directly.
+- The open question was cost. On a trellis kernel, decoding the weights is the expensive step, so
+  reusing a decoded weight fragment for a second multiply might be close to free. Test A measured
+  this, and it was not free.
+- The row-pack variants (RP and RP2) then placed the second term where the decode kernels already
+  spend the work. That brought the kernel cost to at most 2.7% of MoE-layer time at M1.
 
-**A rotation for the NVFP4 KV cache.** Production stores the attention cache as a 4-bit NVFP4
-record. A fixed orthogonal rotation before quantization spreads outlier channels across the
-vector, as in QuaRot. Its inverse could be folded into the attention weights, so it would cost
-nothing at runtime. Test C checked whether there are outliers to spread. There are not.
+**A rotation for the NVFP4 KV cache.**
+- Production stores the attention cache as a 4-bit NVFP4 record.
+- A fixed orthogonal rotation before quantization spreads outlier channels across the vector, as
+  in QuaRot. Its inverse could be folded into the attention weights, so it would cost nothing at
+  runtime.
+- On the tested stand-in latents the rotation found nothing to spread. Their Gaussian shape is a
+  likely explanation, not a demonstrated cause, and confirmation on real latents was not done.
 
 ## 2. Background
 
@@ -111,20 +131,20 @@ bitstreams at 4 or 5 bits per weight ("K4" or "K5"), chosen per layer. All other
 from an NVFP4 carrier checkpoint.
 
 The P8 kernels live in b12x:
-- **Weights.** Each weight fragment is decoded in registers to E4M3 with a procedural MCG
-  codebook. Its constants and state construction are ported from ExLlamaV3's procedural MCG
-  decoder, and that family of trellis codes descends from QTIP. The decoded fragment goes
-  straight into a block-scaled tensor-core matrix multiply ("MMA": `mma.sync`,
-  `kind::mxf8f6f4`, shape m16n8k32).
-- **Activations.** E4M3 values with a power-of-two UE8M0 scale per 32 elements along the
-  reduction dimension ("E4M3/UE8M0-K32", the OCP Microscaling layout). They are quantized at two
-  points ("hops"):
+- **Weights.** Each weight fragment is decoded in registers to E4M3 with a procedural MCG codebook.
+  Its constants and state construction are ported from ExLlamaV3's procedural MCG decoder, and
+  that family of trellis codes descends from QTIP. The decoded fragment goes straight into a
+  block-scaled tensor-core matrix multiply ("MMA": `mma.sync`, `kind::mxf8f6f4`, shape m16n8k32).
+- **Activations.** E4M3 values with a power-of-two UE8M0 scale per 32 elements along the reduction
+  dimension ("E4M3/UE8M0-K32", the OCP Microscaling layout). They are quantized at two points,
+  called "hops":
   - the FC1 (gate/up projection) input;
   - the FC2 (down projection) input after SwiGLU.
 - **Coupled transform.** The checkpoint's block Hadamard transforms and per-channel scales sit
   around both multiplies.
-- **Kernel paths.** "M" below is the number of tokens in one MoE-layer call.
-  - M <= 16 (decode steps) uses "direct" small-M kernels.
+- **Kernel paths.** "M" below is the number of tokens in one MoE-layer call, that is, tokens per
+  step.
+  - M <= 16 uses the "direct" small-M kernels.
   - M 17-128 uses grouped 32-row tiles.
   - Larger M uses the prefill kernels.
 
@@ -140,15 +160,15 @@ FP32 accumulator, because `x W ~= hi W + lo W`.
 ### 2.3 Row-packing on one-route decode tiles
 
 On the direct decode paths (M <= 16), every physical 16/32-row MMA tile holds exactly one route
-row (`valid_rows == 1`), where a route row is one token sent to one expert. The other rows of the
-A operand are zeros that the tensor core multiplies anyway. In the m16n8 accumulator layout, each
+row (`valid_rows == 1`). A route row is one token sent to one expert. The other rows of the A
+operand are zeros that the tensor core multiplies anyway. In the m16n8 accumulator layout, each
 thread holds the same output columns for rows q and q+8.
 
 **D-x2-RP** (the down-projection remainder) uses that spare row:
 - **FC1 epilogue.** Writes `lo = q(v - dq(hi))`, with its own UE8M0 byte, into row +8 of the
   route's own tile.
-- **FC2.** Its main loop is unchanged: it already stages and multiplies row 8, and its odd lanes
-  already supply the row-8 scale.
+- **FC2 main loop.** Unchanged: it already stages and multiplies row 8, and its odd lanes already
+  supply the row-8 scale.
 - **FC2 epilogue.** Folds row 8 into row 0 in registers before the FP16 store
   (`fragment[0] += fragment[2]`, `fragment[1] += fragment[3]`).
 
@@ -157,8 +177,14 @@ thread holds the same output columns for rows q and q+8.
 - FC1 stages it into A row 8, in place of the broadcast duplicate that row used to hold;
 - the FC1 epilogue folds the row q+8 accumulators into row q.
 
-Neither variant adds an MMA, a staging pass or a second data plane. Paths with M > 16 keep the
-production single-term kernels, so both variants affect decode only.
+Neither variant adds an MMA, a staging pass or a second data plane. Steps with M > 16 keep the
+production single-term kernels, so both variants act on decode steps only.
+
+**Supported configuration.** The design relies on three settings, all of which the measured runs
+used:
+- `fc1_broadcast_a=True` (for RP2);
+- `fc1_warp_quant=False` (for all remainder modes);
+- one route per direct tile.
 
 ### 2.4 The NVFP4 MLA KV record
 
@@ -184,19 +210,31 @@ that looks best.
 - Amendments let the plan change for good reasons without hiding the change. For example,
   Amendment 1 moved Test C to the layers that actually carry an MLA cache.
 - Exploratory analyses are labelled as such and cannot change a decision.
-- A preregistered FAIL stops its direction. Test A's FAIL ended the two-hop design whatever
-  Test B showed, and the down-hop work restarted under Amendment 2 on fresh data.
+- A preregistered FAIL stops its direction. Test A's FAIL ended the two-hop design whatever Test B
+  showed, and the down-hop work restarted under Amendment 2 on fresh data.
 
-| Part | Written | Content |
-|---|---|---|
-| Original | 2026-09-23 | Tests A (timing), B (layer numerics) and C (KV rotation), with decision rules. |
-| Amendment 1 | 2026-09-23, before any Test C number | Moves Test C to the model's actual MLA layers: only every fourth layer has the MLA cache, and the rest use KDA linear attention. Records that Test A had already failed. |
-| Amendment 2 | 2026-09-23, before any of its numbers | Confirms the post-hoc down-hop signal on fresh layers (B2) and on the real kernel: closure (K2) and timing (A2). |
-| Amendment 3 | 2026-09-23, before any D-x2-RP number | Row-packed down-hop remainder: closure (K3) and timing (A3). |
-| Amendment 4 | 2026-09-25, before any end-to-end number | Decode-scored KLD with the 09-09 reference protocol and descriptive speed, in an approved production window (NVFP4 KV). |
-| Amendment 5 | 2026-09-25, before any number | Second window with FP8 KV, then the FC1-input row-pack. |
-| Amendment 6 | 2026-09-25, before any D-x2-RP2 number | Gates for the both-hop row-pack RP2: closure (K4) and timing (A4). |
-| Amendment 7 | 2026-09-25, before any 128-window number | Final run on all 128 conditional-fit windows with FP8 KV: arms `control-fp8`, `rp2-fp8` and `tr3-fp8`, two preregistered primaries, and an `rp2-fp8` speed arm. |
+**Chronology.** These are the workspace git commits that added each part, against the first data
+each part governs.
+
+| Part | Commit | Committed (EDT) | First data it governs |
+|---|---|---|---|
+| Preregistration (Tests A-C) | f0a5d99 | 2026-09-23 12:13:31 | Test A/B/C results committed 12:52:51 (0f64f6b) |
+| Amendment 1: Test C moved to the model's actual MLA layers (only every fourth layer has the MLA cache; the rest use KDA linear attention); records that Test A had already failed | f527d0d | 2026-09-23 12:39:48 | Test C results, 12:52:51 |
+| Amendment 2: down-hop remainder confirmation on fresh layers (B2) and on the real kernel (K2, A2) | 61757d2 | 2026-09-23 17:36:07 | K2 log written 17:49:02; A2 log 18:03:01 |
+| Amendment 3: row-packed down-hop remainder (K3, A3) | 0d7a0e6 | 2026-09-23 18:13:05 | K3 log 18:17:32; A3 log 18:21:04 |
+| Amendment 4: decode-scored KLD with the 09-09 protocol, NVFP4 KV, first production window | caa6c2b | 2026-09-25 18:47:54 | window 1 started 19:00:43 |
+| Amendment 5: second window with FP8 KV, then the FC1-input row-pack | 3ec4dab | 2026-09-25 20:26:35 | window 2 started 20:29:49 |
+| Amendment 6: gates for the both-hop row-pack RP2 (K4, A4) | 7622e63 | 2026-09-25 20:36:09 | RP2 smoke 21:18; K4 and A4 started 21:19 |
+| Amendment 7: final run on all 128 conditional-fit windows with FP8 KV (arms `control-fp8`, `rp2-fp8`, `tr3-fp8`; two primaries; an `rp2-fp8` speed arm) | 724782a | 2026-09-25 21:23:44 | window 3 started 21:25:35 |
+
+- **Git times are self-asserted** local timestamps, not an independent registration service.
+- **This public repository cannot show the order.** It was created after the first two
+  production windows.
+- **Header corrections.** The approximate times in the headers of Amendments 5-7 (~20:10, ~20:40,
+  ~22:00) are corrected in the table in `PREREG.md`, for example Amendment 7 to 21:23:44. The
+  amendment texts are unchanged.
+- **Amendment 3** was written after the Amendment 2 timing results and in response to them, before
+  any D-x2-RP number.
 
 ### 3.2 Layer-level gates before production windows
 
@@ -216,19 +254,19 @@ time was spent on them.
 | Test B | Pooled geometric-mean damage reduction >= 5%, >= 5 of 6 layers improve, and the pooled log-ratio CI excludes 0. |
 | Test C | Both metrics drop >= 20% pooled, and the CI excludes 0. |
 | B2 | Pooled down-only reduction >= 20%, >= 5 of 6 layers improve, and the upper CI bound of the pooled log ratio < 0. |
-| K2 / K3 / K4 | Per layer and path: `abs(D_kernel(prod) / D_ref(P-A8) - 1) <= 5%`, and the arm/prod ratio within +/-0.05 of the reference ratio (down-only for K2/K3, both hops for K4). K3 and K4 also require M64/M3072 outputs bit-identical to prod. |
+| K2 / K3 / K4 | Per layer and path: `abs(D_kernel(prod) / D_ref(P-A8) - 1) <= 5%`, and the arm/prod damage ratio within +/-0.05 of the reference ratio (down-only for K2/K3, both hops for K4). K3 and K4 also require M64/M3072 outputs bit-identical to prod. |
 | A2 | Decode: median <= 1.03 at M1 and M4. Prefill: median <= 1.05 at M512 and M2048. |
 | A3 / A4 | Median <= 1.03 at M1 and M4 on both layers. |
 | Amendments 4 and 5 reading | Improvement if the paired mean < 0 and the CI excludes 0. No detectable change if the CI includes 0. Harm if the mean > 0 and the CI excludes 0. |
-| Amendment 7 primaries | (1) `rp2-fp8 - control-fp8`: improvement if the mean < 0 and the CI excludes 0. (2) `rp2-fp8 - tr3-fp8`, reported three ways: whether the CI includes 0, whether the whole CI lies within +/-5% of TR3's mean, and the same at +/-10%. |
+| Amendment 7 primaries | (1) `rp2-fp8 - control-fp8`: improvement if the mean < 0 and the CI excludes 0. (2) `rp2-fp8 - tr3-fp8`, reported three ways: whether the CI includes 0, and whether the whole CI lies within +/-5% or within +/-10% of TR3's mean. |
 
 ### 3.3 Layer-level numerics (Tests B and B2)
 
 **What.** `scripts/remainder_damage.py` uses the campaign's `p8_layer_rate_damage` method:
 - the r27 rank sidecars are reference-decoded with the kernel's procedural-MCG E4M3 codebook;
 - the exact coupled reference forward runs over all 288 experts;
-- the routed-output damage is `D = sum_t ||S(t)||^2 / sum_t ||routed_output(t)||^2`, against
-  the BF16 source experts, on 64 fit windows x 48 tokens = 3,072 tokens per layer.
+- the routed-output damage is `D = sum_t ||S(t)||^2 / sum_t ||routed_output(t)||^2`, measured
+  against the BF16 source experts on 64 fit windows x 48 tokens = 3,072 tokens per layer.
 
 The activation carrier is selectable at each hop:
 
@@ -249,19 +287,19 @@ error is reachable at all.
 - The harness asserts that the production arm is bit-identical to the campaign's
   `coupled_expert_reference`.
 - The BF16 closure arm lands at 4-9e-8 relative.
-- A like-for-like rerun of an earlier (09-04) activation screen reproduces its published value
-  to a relative difference of 1e-7, so the harness measures the same thing the earlier work did.
+- A like-for-like rerun of an earlier (09-04) activation screen reproduces its published value to
+  a relative difference of 1e-7, so the harness measures the same thing the earlier work did.
 
-**Uncertainty.** A paired window BCa bootstrap, where one resample of the 64 window indices is
-applied to every layer at once (20,000 replicates, seed 20260923, jackknife acceleration;
+**Uncertainty.** A paired window BCa bootstrap: one resample of the 64 window indices is applied to
+every layer at once (20,000 replicates, seed 20260923, jackknife acceleration;
 `scripts/analyze_BC.py`). The statistic is the mean over layers of
-`log(sum_w D_new / sum_w D_ref)`; its exponential is the pooled geometric-mean ratio.
+`log(sum_w D_new / sum_w D_ref)`, and its exponential is the pooled geometric-mean ratio.
 
 ### 3.4 KV rotation (Test C)
 
 **What.**
-- **Stand-in latents.** Attention inputs are not in the capture, so the latent for MLA layer A
-  is built from the routed-block capture of layer C:
+- **Stand-in latents.** Attention inputs are not in the capture, so the latent for MLA layer A is
+  built from the routed-block capture of layer C:
   - `a = gamma_in(A) * (m_C / gamma_post(C))`;
   - `c = kv_a_layernorm(kv_a_proj(a))`, using the carrier's BF16 attention weights.
 - **Queries.** `q_a_proj -> q_a_layernorm -> q_b_proj`, absorbed with each head's `W_UK`.
@@ -279,36 +317,37 @@ that reads it, and there is no reason to spend a production window on it.
 ### 3.5 Closure tests (K2, K3, K4)
 
 **What.** `scripts/dx2_closure.py` runs on layers 3 (K5) and 8 (K4).
-- All four tensor-parallel rank sidecars run one at a time, and their outputs are summed, which
-  is what the all-reduce computes.
-- The Test B fit tokens are fed in chunks that exercise every kernel path: M1, M16, M64 and
-  M3072.
+- All four tensor-parallel rank sidecars run one at a time, and their outputs are summed, which is
+  what the all-reduce computes.
+- The Test B fit tokens are fed in chunks that exercise every kernel path: M1, M16, M64 and M3072.
+  The M1 path used the first 96 tokens; the preregistration said 64.
 - Damage is measured against the BF16-source routed output.
 - K4 uses the RP2 tree (`B12X_TREE=b12x-dx2rp2`) and the `rp2` arm.
 
 **Why.**
-- The layer-level numbers come from a reference implementation. Closure proves that the CUDA
-  kernels compute the same thing, so the reference numbers transfer to the kernels.
-- Closure also catches layout and scale bugs that a speed test cannot see.
-- The bit-identity checks on untouched paths prove that the new code does not leak into the
-  production kernels.
+- The layer-level numbers come from a reference implementation. Closure checks that the CUDA
+  kernels reproduce the reference damage, so the reference numbers carry over to the kernels. It
+  shows damage agreement, not tensor equivalence.
+- It catches layout and scale bugs that a speed test cannot see.
+- Untouched paths are checked for bit identity with `torch.equal`, on the saved rank-summed
+  tensors, to show that the new code does not leak into the production kernels.
 
 ### 3.6 Timing with CUDA graphs, interleaved blocks and paired ratios
 
 **What.** `scripts/timing_harness.py` and `scripts/dx2_timing.py`.
-- `P8NativeTPMoE` is built for tensor-parallel rank 0 the way the serving integration builds
-  it, with real routed-block inputs and top-8 routes.
+- `P8NativeTPMoE` is built for tensor-parallel rank 0 the way the serving integration builds it,
+  with real routed-block inputs and top-8 routes.
 - Each timed unit is a CUDA-graph replay of one MoE-layer call, 200 replays per block.
-- The two arms alternate block by block: 60 blocks per cell. Decode cells use 4 input sets
-  (240 blocks) and prefill cells use 2.
-- The metric is the median of per-block paired time ratios, with a percentile-bootstrap interval
-  of that median (20,000 resamples, seed 20260923).
+- The two arms alternate block by block: 60 blocks per cell. Decode cells use 4 input sets (240
+  blocks) and prefill cells use 2.
+- The metric is the median of per-block paired time ratios, with a percentile-bootstrap interval of
+  that median (20,000 resamples, seed 20260923).
 - Compile caches were off.
 
 **Why.**
 - Graph replay removes Python and launch overhead, so only kernel time is measured.
-- Alternating the arms puts both under the same clock and temperature conditions, so drift
-  cancels in the ratio.
+- Alternating the arms puts both under the same clock and temperature conditions, so drift cancels
+  in the ratio.
 - The median resists outlier blocks.
 - Compile caches key on the compile spec rather than on the arm, and could otherwise mix arms.
 
@@ -322,12 +361,14 @@ that reads it, and there is no reason to spend a production window on it.
 - Row 0 comes from prefill and is excluded, leaving 2,046 true-decode rows per window.
 
 **Why.**
-- RP and RP2 change only the decode kernels. A prefill-scored KL measurement would push every
-  token through the unchanged prefill kernels and could not see them.
-- Forcing the tokens keeps every arm on an identical history, so rows line up exactly across
-  arms and the comparison is row for row.
-- Reusing the published protocol makes our controls comparable with the published 09-09
-  values.
+- RP and RP2 change only the direct decode kernels. A prefill-scored KL measurement would push
+  every token through the unchanged prefill kernels and could not see them.
+- Forcing the tokens keeps every arm on an identical history, so rows line up exactly across arms
+  and the comparison is row for row.
+- Reusing the published protocol makes our controls comparable with the published 09-09 values.
+
+**Consequence.** Every position, including the KV entries it writes, is computed by M1 decode
+steps. In serving, the prompt is prefilled by unchanged kernels (section 5).
 
 ### 3.8 KL divergence in FP64 over the full vocabulary
 
@@ -343,27 +384,35 @@ from the stored FP32 teacher logits of the BF16 model.
 ### 3.9 Windows as the resampling unit, with paired BCa intervals
 
 **What.** Each window's mean KL over its 2,046 rows is one observation, and arms are compared
-through per-window differences. Intervals come from `scipy.stats.bootstrap` with
-`method="BCa"`, 20,000 resamples and `random_state=20260902`, the estimator of the published
-intervals.
+through per-window differences.
+- **Estimator.** Intervals come from `scipy.stats.bootstrap` with `method="BCa"`, 20,000 resamples
+  and `random_state=20260902`, the estimator of the published intervals.
+- **Relative intervals.** A relative interval is the absolute BCa interval divided by the
+  comparator's observed mean.
+- **Endpoint reproducibility.** With a fixed seed, the endpoints depend on the window order. The
+  manifest order in `verified-inputs.json` reproduces them exactly.
+- **Software.** Python 3.12.3, numpy 1.26.3, scipy 1.16.3.
 
 **Why.**
 - Rows within a window share context and are strongly correlated, so treating 2,046 rows as
-  independent would overstate precision. The window is the independent unit.
-- Window means span more than an order of magnitude (`results/kld-cf128/analysis.json`), and
-  pairing removes that difficulty spread from the comparison.
-- KL is heavy-tailed: in the first production window, the top 1% of rows carried 31% of the
-  mean. BCa corrects the bias and skew of the bootstrap distribution better than a plain
-  percentile interval.
-- The fixed seed makes every interval reproducible.
+  independent would overstate precision. The window is the resampling unit.
+- Window means span more than an order of magnitude (`results/kld-cf128/analysis.json`). Pairing
+  removes that difficulty spread from the comparison.
+- KL is heavy-tailed: in the first production window, the top 1% of rows carried 31% of the mean.
+  BCa corrects the bias and skew of the bootstrap distribution better than a plain percentile
+  interval.
+
+**Window dependence.** Windows are not fully independent. The reasoning windows share a template,
+and a few general-text windows overlap. A cluster bootstrap over windows that share text keeps
+both primaries' intervals clear of 0 (section 4.9).
 
 ### 3.10 Only conditional-fit windows
 
 **What.** The teacher dataset assigns its windows to roles: fit, conditional-fit, selection,
 confirmation and final.
 - This study read only fit windows (layer tests) and conditional-fit windows (KL runs).
-- The first two production windows reused 32 conditional-fit windows that the 09-09
-  measurements had already opened.
+- The first two production windows reused 32 conditional-fit windows that the 09-09 measurements
+  had already opened.
 - The final run used all 128 conditional-fit windows, 96 of them scored for the first time.
 
 **Why.**
@@ -378,23 +427,38 @@ confirmation and final.
 **What.** All three arms of the final run used FP8 MLA KV.
 
 **Why.**
-- The FP8-KV window showed that FP8 KV lowers KL by 10.9% for our control.
+- The FP8-KV window showed that FP8 KV lowers KL by 10.9% for our control, in a cross-run
+  comparison.
 - The published 09-09 values show the same direction for TR3: 0.0281899 with FP8 KV, against
   0.03048 with NVFP4 KV.
-- The final comparison is therefore made at each system's better cache.
+- The final comparison is therefore made at each system's better cache. The cost is that RP2 was
+  never measured with the NVFP4 KV that production uses.
 
-### 3.12 Fixed arm order, with run-to-run drift measured
+### 3.12 Fixed arm order, and what repeat runs show
 
-**What.** One production window and one fresh server per arm, in a fixed order: control, then
-RP2, then TR3.
+**What.** One production window and one fresh server per arm, in a fixed order: control, then RP2,
+then TR3.
 
-**Why.**
-- Fresh servers rule out state carried from one arm to the next.
-- A fixed order could confound slow drift with the arm, so the drift was measured on the
-  original 32 windows:
-  - the control moved -0.07% against the same day's FP8 window;
-  - TR3 moved -1.07% against its 09-09 run.
-- About 1% or less is well below the 8.3% RP2-TR3 gap.
+**Why.** Fresh servers rule out state carried from one arm to the next. A fixed order could
+confound a server-level shift with the arm, so repeats of identical configurations were compared
+on the original 32 windows (paired BCa95, relative to the earlier run; `reported-extras.json`):
+
+| Repeat | Mean shift | BCa95 | Per-window SD | Max per-window |
+|---|---|---|---|---|
+| control-fp8, final vs FP8 window (same night, about 1 h apart) | -0.07% | [-0.9%, +1.2%] | 3.6% | 12.3% |
+| control-fp8, FP8 window vs 09-09 | -2.3% | [-7.4%, -0.2%] | 5.2% | 19.4% |
+| control-fp8, final vs 09-09 | -2.4% | [-7.7%, -0.3%] | 5.7% | 20.0% |
+| control NVFP4, first window vs 09-09 | -1.3% | [-2.4%, -0.1%] | 3.2% | 9.5% |
+| tr3-fp8, final vs 09-09 | -1.1% | [-5.3%, +0.3%] | 3.8% | 16.2% |
+
+- **Per-window noise** is already inside the paired intervals, because each arm is one run. A shift
+  of the whole server run is not.
+- **Same night vs different days.** The same-night repeat agrees closely. Repeats on different days
+  moved by up to -2.4%, with CIs that exclude 0.
+- **Margins.** The primaries clear 0 by 1.8% (rp2 - control) and 2.0% (rp2 - tr3), about the size
+  of those cross-day shifts.
+- **Assumption.** The conclusions therefore assume that server shifts within one night are small.
+  The one same-night repeat supports this.
 
 ### 3.13 Estimators and seeds
 
@@ -403,7 +467,8 @@ RP2, then TR3.
 | Test A, exploratory split, A2, A3 and A4 timing | percentile bootstrap of the median over blocks | 20,000 | 20260923 |
 | Tests B, C and B2 | paired window BCa with jackknife acceleration | 20,000 | 20260923 |
 | Test C random-sign arm | fixed random signs | n/a | 20260923 |
-| End-to-end KLD, including cross-run comparisons | `scipy.stats.bootstrap`, BCa, over window-paired differences | 20,000 | 20260902 |
+| End-to-end KLD, including cross-run comparisons and repeats | `scipy.stats.bootstrap`, BCa, over window-paired differences; relative intervals scaled by the comparator's observed mean | 20,000 | 20260902 |
+| Audit sensitivities: domain-balanced (stratified), cluster bootstrap, gap fraction | percentile bootstrap over windows or clusters | 20,000 | 20260902 |
 
 ### 3.14 Model, checkpoint, runtime and hardware
 
@@ -412,22 +477,23 @@ RP2, then TR3.
 - **Checkpoint.** TrellisMX r27 (`brandonmusic/GLM-5.3-Flash-TrellisMX-MXFP8`): per-rank trellis
   sidecars for the routed experts, four tensor-parallel ranks per layer, overlaid on the NVFP4
   carrier `local-inference-lab/GLM-5.3-Flash-NVFP4`.
-- **Runtime.** Serving image `verdictai/trellismx@sha256:ca6b8018...` (full digest under
-  [Reproduction](#6-reproduction)). It is vLLM-based, and the server reports
+- **Runtime.** Serving image `verdictai/trellismx@sha256:ca6b8018...` (full digest in section 7).
+  It is vLLM-based, and the server reports
   `0.26.1rc0+glm53.flash.nvfp4.luke.clean.r1.vllme75bcfd.b12x58a046f`. Every patched arm
   bind-mounts a patched b12x tree over `/opt/glm53-flash/b12x`.
+- **Capture images.** The KL captures ran in capture-only images (section 7.1).
 - **Serving layout.**
   - Capture profile: TP4/DCP4 (tensor parallel 4, decode context parallel 4), MTP off, one
     sequence, 4096 batched tokens, GPU memory utilization 0.97, maximum length 1M.
   - Production speed profile: MTP with 3 speculative tokens, 48 sequences, 8192 batched tokens,
     GPU memory utilization 0.88.
-- **Hardware.** Four NVIDIA RTX PRO 6000 Blackwell GPUs (two Max-Q, two Workstation Edition),
-  PCIe, 300 W limit each.
+- **Hardware.** Four NVIDIA RTX PRO 6000 Blackwell GPUs (two Max-Q, two Workstation Edition), PCIe,
+  300 W limit each.
 
 ## 4. Results
 
-Every number below comes from `RESULTS.md` or the files under `results/`, copied at the
-precision of the source.
+Every number below comes from `RESULTS.md` or the files under `results/`, copied at the precision
+of the source.
 
 ### 4.1 Test A: zero-remainder timing (preregistered). FAIL
 
@@ -483,12 +549,11 @@ quantize, the lo-scale loads and staging the lo tile.
 - Pooled down-only: 0.606 [0.549, 0.673].
 - Pooled FC1-only: 0.863 [0.842, 0.909].
 
-**Per domain** (two-term ratio): general 0.596, legal 0.509, code/agentic 0.625, reasoning
-0.403.
+**Per domain** (two-term ratio): general 0.596, legal 0.509, code/agentic 0.625, reasoning 0.403.
 
 **Like-for-like check.** The 09-04 screen's ordinary-E4M3 geometric-mean NMSE reproduces as
-7.3725278e-4 against the published 7.3725270e-4 (relative difference 1e-7). On the same plan,
-the two-term carrier gives 2.76e-7, and 16/16 experts improve (`results/testB/screen-repro.json`).
+7.3725278e-4 against the published 7.3725270e-4 (relative difference 1e-7). On the same plan, the
+two-term carrier gives 2.76e-7, and 16/16 experts improve (`results/testB/screen-repro.json`).
 
 Test B is a layer-level proxy, not KL divergence. Under the preregistration, Test A's failure
 stopped the two-hop design regardless of this result.
@@ -496,7 +561,9 @@ stopped the two-hop design regardless of this result.
 ### 4.3 Test C: H512 before the NVFP4 MLA latent record (preregistered, amended). FAIL
 
 **Mirror check.** On real stand-in latents, the torch mirror matches the real writer's 304-byte
-record on 99.96% of elements, and the error energy agrees to 1.6e-5.
+record on 99.96% of elements, and the error energy agrees to 1.6e-5. A rerun from the saved
+tensors gives 99.963% of elements equal and an error-energy ratio of 0.999984
+(`results/testC/mirror_check_20260926.txt`).
 
 | metric | H512 pooled ratio | H512 x random signs |
 |---|---|---|
@@ -504,14 +571,15 @@ record on 99.96% of elements, and the error energy agrees to 1.6e-5.
 | attention-logit error | 1.0055 [1.0044, 1.0066] | 1.0056 [1.0044, 1.0068] |
 
 - The same-layer stand-ins (3:3, 23:23, 43:43) agree within +/-1.6%.
-- The latent after `kv_a_layernorm` is already Gaussian-shaped: per-token amax/RMS is 3.25, the
-  value for a 512-dimensional Gaussian. There are no outlier channels for a rotation to spread
-  (`results/testC/`).
+- On the tested stand-in latents, the rotation found nothing to spread. After `kv_a_layernorm` the
+  per-token amax/RMS is 3.25, the value for a 512-dimensional Gaussian (`results/testC/`).
+- The Gaussian shape is a likely explanation, not a demonstrated cause. Confirmation on real
+  latents was not done.
 
 ### 4.4 Amendment 2: plane-based down-hop remainder (D-x2)
 
 **K2, real-kernel closure: PASS** (`results/k2/closure-dx2build.json`; reference values from
-`results/testB/`).
+`results/testB/`). K2 shows damage agreement with the reference.
 
 | layer | path | D_kernel(prod)/D_ref(P-A8) | D-x2/prod (kernel) | reference down-only |
 |---|---|---|---|---|
@@ -520,7 +588,8 @@ record on 99.96% of elements, and the error energy agrees to 1.6e-5.
 | 8 | M1 (96 tok) | 1.0008 | 0.7844 | 0.7843 |
 | 8 | M16/M64/M3072 | 1.0003 | 0.9384 | 0.9384 |
 
-With the flag off, the D-x2 build's outputs are bit-identical to the image's own kernels.
+With the flag off, the D-x2 build's outputs are bit-identical to the image's own kernels. This was
+confirmed by `torch.equal` on the saved tensors (M16 and M3072, layers 3 and 8, rank sums).
 
 **A2, real-kernel timing: FAIL**, in decode and in prefill. D-x2/prod medians
 (`results/analysis_amendment2.json`):
@@ -530,8 +599,8 @@ With the flag off, the D-x2 build's outputs are bit-identical to the image's own
 | 8 K4 | 1.026 | **1.079** | 1.009 | 1.053 | **1.172** | **1.187** |
 | 3 K5 | **1.030** | **1.071** | 1.038 | 1.047 | **1.163** | **1.185** |
 
-An exploratory split puts the cost mostly in FC2 (lo staging plus the extra MMA), e.g. +15-16%
-at M512. The FC1 epilogue adds 0-3% (`results/dx2_split_timing_raw.json`).
+An exploratory split puts the cost mostly in FC2 (lo staging plus the extra MMA), e.g. +15-16% at
+M512. The FC1 epilogue adds 0-3% (`results/dx2_split_timing_raw.json`).
 
 **B2, fresh-layer numerics: PASS.** Pooled down-only D ratio **0.744 (-25.6%), BCa 95% CI
 [0.673, 0.807], 6/6 improve**.
@@ -554,6 +623,7 @@ The K4 layers, which have high weight error, gain little.
 - M1/M16 damage ratios against the reference:
   - layer 3: 0.3650 / 0.6189 (reference 0.3630 / 0.6183);
   - layer 8: 0.7844 / 0.9384 (reference 0.7843 / 0.9384).
+- The damage ratios agree with the plane-based D-x2 to 4-5 digits.
 - M64 and M3072 outputs are bit-identical to prod.
 
 **A3, timing: PASS.** RP/prod medians over 240 blocks (`results/a3_timing_raw.json`):
@@ -574,8 +644,8 @@ healthy (`results/kld-rp-20260925/`). The `rp` server logged 168 `P8_DX2_ROWPACK
 | control | 0.0350129 | [0.02911, 0.04317] |
 | rp (D-x2-RP) | 0.0330631 | [0.02801, 0.03983] |
 
-**rp - control = -0.00195 (-5.57%), paired BCa95 [-0.005975, +0.000118], rp lower in 19/32.**
-The preregistered reading is **no detectable change**, because the CI crosses 0 by 0.0001.
+**rp - control = -0.00195 (-5.57%), paired BCa95 [-0.005975, +0.000118], rp lower in 19/32.** The
+preregistered reading is **no detectable change**, because the CI crosses 0 by 0.0001.
 
 Post-hoc, reported only (65,472 rows):
 - median row KL: -1.5%;
@@ -584,7 +654,7 @@ Post-hoc, reported only (65,472 rows):
 - window medians: lower in 23/32.
 
 Context from the published 09-09 measurements. These are cross-run comparisons, so each carries
-server-run noise.
+server-run noise (section 3.12).
 - The 09-25 control vs the published 09-09 control (0.0354562): -1.25% in the mean, and 3.2%
   per-window SD.
 - Paired against TR3 4bpw with the same NVFP4 KV (0.03048):
@@ -603,9 +673,8 @@ cell. Values are aggregate decode tokens/s. "C1 0K" means concurrency 1 at conte
 | C1 8K | 184.1 | 193.9 (+5.3%) | 0.538 / 0.610 |
 | C4 8K | 300.7 | 299.0 (-0.6%) | 0.669 / 0.656 |
 
-RP is not slower. The C1 gains track higher MTP acceptance in these runs. That could come from
-more BF16-like target logits or from different generated text, and single runs cannot tell
-which.
+In these single runs rp was not slower. The C1 gains track higher MTP acceptance, which could come
+from more BF16-like target logits or from different generated text; single runs cannot tell which.
 
 ### 4.7 Amendment 5: second production window, FP8 MLA KV, 32 windows
 
@@ -617,13 +686,12 @@ healthy (`results/kld-fp8-20260925/`).
 | control-fp8 | 0.0311958 | [0.02643, 0.03776] |
 | rp-fp8 | 0.0309337 | [0.02617, 0.03750] |
 
-**rp-fp8 - control-fp8 = -0.00026 (-0.84%), paired BCa95 [-0.001146, +0.001246], lower in
-19/32: no detectable change.**
+**rp-fp8 - control-fp8 = -0.00026 (-0.84%), paired BCa95 [-0.001146, +0.001246], lower in 19/32:
+no detectable change.**
 
-**Paired comparisons across runs.**
-- Each carries about 1-2% server-run noise.
-- The interval is for the per-window difference in true-decode KLD, and the change is relative
-  to the second arm's mean.
+**Paired comparisons across runs.** These were reported, not preregistered primaries, and each
+carries server-run noise (section 3.12). The interval is for the per-window difference in
+true-decode KLD, and the change is relative to the second arm's mean.
 
 | comparison | change | paired BCa95 | first arm lower in |
 |---|---|---|---|
@@ -644,18 +712,21 @@ control-fp8 vs the published 09-09 TrellisMX FP8 control (0.0319452): -2.3% in t
 | C1 8K | 184.1 | 193.9 | 193.4 | 0.487 |
 | C4 8K | 300.7 | 299.0 | 304.0 | 0.613 |
 
-**KV capacity**, from the engine startup logs:
-- Production profile (GMU 0.88, 48 seqs): NVFP4 12,581,699 tokens; FP8 8,127,659 tokens (-35%).
+**KV capacity**, from the engine startup logs (`results/kv_capacity_serving_profile.json` for the
+serving profile):
+- Production profile (GMU 0.88, 48 seqs): NVFP4 12,581,699 tokens, measured on the first window's
+  control speed server; FP8 8,127,659 tokens (-35%).
 - Capture profile (GMU 0.97, 1 seq): NVFP4 31,565,217 tokens; FP8 19,362,962 tokens.
 
 ### 4.8 Amendment 6: both-hop row-pack (D-x2-RP2)
 
-**Smoke test** (layer 8, rank 0):
+**Smoke test** (layer 8, rank 0; `results/rp2_smoke_20260925_console.jsonl`):
 - deterministic and finite;
 - at M1/M4/M16, RP2 differs from prod by 3.7-3.9% and from RP by 2.7-2.8%;
 - at M64/M512, bit-identical to prod.
 
-**K4 closure: PASS** (`results/k2/closure-rp2.json`; reference values from `results/testB/`).
+**K4 closure: PASS** (`results/k2/closure-rp2.json`; reference values from `results/testB/`). K4
+shows damage agreement with the reference.
 
 | layer | path | D_kernel(prod)/D_ref(P-A8) | RP2/prod (kernel) | reference both-hops P-A8x2/P-A8 |
 |---|---|---|---|---|
@@ -673,23 +744,27 @@ M64 and M3072 outputs are bit-identical to prod on both layers.
 | 8 K4 | 1.0263 | 1.0064 [1.0009, 1.0128] | 0.9405 |
 | 3 K5 | 1.0273 | 0.9879 [0.9843, 0.9917] | 1.0024 |
 
-The input-hop row-pack adds essentially no cost on top of the down-hop RP. On the fresh B2
-layers, the layer-level both-hop damage has a geometric mean of about 0.68 (-32%), against 0.744
-for down-only.
+RP2's kernel cost at M1 is at most 2.7% of MoE-layer time, and the input-hop row-pack adds
+essentially nothing on top of the down-hop RP. On the fresh B2 layers, the layer-level both-hop
+damage has a geometric mean of about 0.68 (-32%), against 0.744 for down-only.
 
 ### 4.9 Amendment 7: final run, 128 windows, FP8 MLA KV
 
 Production was stopped at 21:25:35 and restored healthy at 00:42:03, after the speed arm
-(`results/kld-cf128/window.log`, `restoration.json`). Each arm got one fresh server, in this
-order:
+(`results/kld-cf128/window.log`, `restoration.json`). Each arm got one fresh server, in this order:
 
-| arm | server healthy | capture complete | activation proof |
-|---|---|---|---|
-| control-fp8 | 21:27:51 | 22:22:59 | 0 `P8_DX2_ROWPACK_ACTIVE` lines |
-| rp2-fp8 | 22:26:00 | 23:22:17 | 168 `P8_DX2_ROWPACK_ACTIVE ... input_hop=1` lines |
-| tr3-fp8 | 23:25:18 | 00:24:23 | 0 lines (TR3 stack) |
+| arm | capture image (from `launch.json`) | server healthy | capture complete | activation proof |
+|---|---|---|---|---|
+| control-fp8 | `sha256:0405a1c0...` | 21:27:51 | 22:22:59 | 0 `P8_DX2_ROWPACK_ACTIVE` lines |
+| rp2-fp8 | `sha256:0405a1c0...` | 22:26:00 | 23:22:17 | 168 `P8_DX2_ROWPACK_ACTIVE ... input_hop=1` lines |
+| tr3-fp8 | `sha256:62e069fa...` | 23:25:18 | 00:24:23 | 0 lines (TR3 stack) |
 
-All 128 conditional-fit windows were scored in every arm, with 2,046 scored rows per window.
+- **Image fields.** The `capture_image_id` field in each `runtime-audit.json` is a harness constant
+  and is wrong for the TR3 arm; that file's `image` field is right.
+- **Activation marker.** `P8_DX2_ROWPACK_ACTIVE` is printed when the MoE runtime is constructed,
+  meaning the path is armed; it runs on steps with M <= 16.
+- **Coverage.** All 128 conditional-fit windows were scored in every arm, with 2,046 scored rows
+  per window.
 
 **Arm means** (true-decode mean KLD, window-level BCa95):
 
@@ -710,22 +785,23 @@ All 128 conditional-fit windows were scored in every arm, with 2,046 scored rows
 **Reading, by the preregistered rules.**
 - **Primary 1: RP2 improves on the control.** KL falls by 4.9%, the CI excludes 0, and RP2 is
   lower in 105 of 128 windows.
-- **Primary 2: RP2 is not tied with TR3.** RP2 is 8.3% above TR3, the CI [+2.0%, +14.5%]
-  excludes 0, and it is not equivalent at +/-5% or at +/-10%.
-- RP2 closes about 40% of the control's gap to TR3 (0.004183 -> 0.002504).
-- An interim look at 00:11 used the first 47 windows (+5.4%, CI [-5.3%, +14.2%]) and could not
-  tell RP2 and TR3 apart. The full preregistered set can: on the 96 windows scored for the first
-  time, RP2 - TR3 is +9.8% [+2.1%, +16.9%].
+- **Primary 2: RP2 is not tied with TR3.** RP2 is 8.3% above TR3 and the CI [+2.0%, +14.5%]
+  excludes 0. Equivalence within +/-5% or +/-10% was not established. That is a separate
+  statement from the direction: it does not show that the difference exceeds 10%.
+- **Gap to TR3.** RP2 closes 40.1% of the control's gap to TR3 (0.004183 -> 0.002504), paired
+  bootstrap 95% [18.6%, 75.0%].
+- **Interim look.** There was one interim look, at 23:47 EDT, when control and rp2 were complete
+  and TR3 was at 47 windows. On those windows rp2 - tr3 was +5.4% [-5.3%, +14.2%], and they could
+  not tell RP2 and TR3 apart. The look changed nothing in the run, which completed automatically.
+- **New windows.** The full preregistered set does separate them. On the 96 windows scored for
+  the first time, rp2 - tr3 is +9.8% [+2.1%, +16.9%].
 
 **Reported only.**
 - **The 96 new windows alone:** rp2 - control -4.1% [-6.6%, -0.7%], lower in 76/96.
 - **The original 32 windows:** rp2 - control -7.5% [-12.8%, +2.1%], lower in 29/32; rp2 - tr3
   +3.4% [-9.6%, +13.7%].
-- **Run-to-run stability on the original 32 windows:**
-  - control-fp8 here vs the FP8 window: 0.031174 vs 0.031196 (-0.07%);
-  - tr3-fp8 here vs 09-09: 0.027889 vs 0.028190 (-1.07%).
-
-  Run-level drift is about 1% or less, well below the 8.3% RP2-TR3 gap.
+- **Run-to-run repeats:** see the table in section 3.12. The same-night control repeat moved
+  -0.07%; repeats across days moved by up to -2.4%.
 - **Row-level ratios** over all 128 x 2,046 rows:
 
   | comparison | mean | median | q90 | q99 | q99.9 | pooled-q99.5 trimmed | rows lower | window medians lower |
@@ -743,8 +819,8 @@ All 128 conditional-fit windows were scored in every arm, with 2,046 scored rows
   | code / agentic (37) | 0.03038 | 0.02933 | 0.03064 |
   | reasoning / termination (16) | 0.02111 | 0.02044 | 0.02293 |
 
-- **Per-domain paired differences** (reported only, not preregistered). These are 12 intervals
-  with no multiplicity correction, and each domain has only 16-38 windows.
+- **Per-domain paired differences** (reported only, not preregistered). These are 12 intervals with
+  no multiplicity correction, and each domain has only 16-38 windows.
 
   | domain | rp2 - control | rp2 - tr3 | control - tr3 |
   |---|---|---|---|
@@ -753,10 +829,34 @@ All 128 conditional-fit windows were scored in every arm, with 2,046 scored rows
   | code / agentic | -3.5% [-7.0, +5.1], 30/37 lower | -4.3% [-19.0, +9.4], 13/37 | -0.9% [-15.6, +13.2], 14/37 |
   | reasoning / termination | -3.2% [-10.0, +5.0], 9/16 lower | -10.8% [-31.1, +9.5], 9/16 | -7.9% [-30.9, +7.4], 9/16 |
 
-  TR3's advantage sits in legal and general text. On code and reasoning, RP2 and TR3 cannot be
-  told apart. RP2's largest gain over the control is on legal text.
+  TR3's advantage sits in legal and general text. On code and reasoning, RP2 and TR3 cannot be told
+  apart. RP2's largest gain over the control is on legal text.
 - **KV capacity** in the capture profile (engine startup log): TrellisMX FP8 19,333,333 tokens;
   TR3 FP8 24,950,413 tokens.
+
+**Audit sensitivity analyses** (reported only; `results/kld-cf128/reported-extras.json` unless
+noted).
+
+| Analysis | rp2 - control | rp2 - tr3 |
+|---|---|---|
+| Preregistered (BCa95) | -4.9% [-7.3%, -1.8%] | +8.3% [+2.0%, +14.5%] |
+| Domain-balanced: four domains weighted equally, stratified bootstrap (percentile 95%) | -4.7% [-7.3%, -2.0%] | +6.1% [-0.2%, +12.5%] |
+| Cluster bootstrap, windows sharing >= 1 32-token span (81 clusters, largest 19) | [-7.4%, -1.9%] | [+2.0%, +16.2%] |
+| Cluster bootstrap, windows sharing >= 64 spans (110 clusters, largest 16) | [-7.7%, -2.1%] | [+1.7%, +15.8%] |
+| Bonferroni-adjusted 97.5% BCa (`RESULTS.md`) | [-7.59%, -1.22%] | [+1.08%, +15.31%] |
+| Ratio-of-means BCa (`RESULTS.md`) | [-7.20%, -1.80%] | [+1.87%, +14.57%] |
+
+- **Robustness.** RP2's advantage over the control holds under every analysis. Its gap to TR3
+  holds under all of them except equal domain weights, where the interval includes 0.
+- **Window dependence.** 256 window pairs share at least one 32-token span, and all 120 pairs of
+  reasoning windows share 100 or more (a common template).
+- **Per-window spread.** The rp2/control ratio ranges from 0.56 to 2.89 across windows (median
+  0.93; log-ratio SD 0.18), so a single window says little.
+- **Rerun agreement.** The two control-fp8 runs on the original 32 windows are not bit-identical:
+  - 0/32 windows are identical;
+  - 74.9% of rows differ;
+  - 97.7% of top-1 predictions agree between runs.
+- **Top-1 agreement with the BF16 teacher**, over all rows: control 94.34%, rp2 94.47%, tr3 94.75%.
 
 **Speed.** `rp2-fp8` ran with the production config and the same cells and cooling gate as the
 earlier windows, one run per cell. It is shown next to the earlier runs. Values are aggregate
@@ -769,84 +869,162 @@ decode tokens/s, with MTP acceptance in parentheses (`results/kld-cf128/final-re
 | C1 8K | 184.1 (0.538) | 193.9 (0.610) | 193.4 (0.487) | 200.7 (0.531) |
 | C4 8K | 300.7 (0.669) | 299.0 (0.656) | 304.0 (0.613) | 312.7 (0.608) |
 
-The table shows no end-to-end slowdown from RP2, but it cannot rank the arms:
-- these are single unpaired runs from three different windows, with no intervals;
-- MTP acceptance varies between runs and moves C1 speed by several percent.
-
-The FP8 serving profile of the `rp2-fp8` speed server holds 8,127,659 tokens of KV cache.
+Observed sustained-decode rates were similar in these single unpaired runs. The runs cannot rank
+the arms or resolve an end-to-end cost of 1-3%. The FP8 serving profile of the `rp2-fp8` speed
+server holds 8,127,659 tokens of KV cache.
 
 ## 5. Limits and scope
 
-- **The served effect is expected to be smaller than the measured one.**
-  - The true-decode protocol computes every position, including its KV entries, with M1 decode
-    steps.
-  - In serving, the prompt is prefilled by the unchanged prefill kernels, so the prompt's hidden
-    states and KV entries carry control numerics, and only generated tokens use RP2.
-  - The served-model effect was not measured.
-- **Decode kernels only.** RP and RP2 change only the direct kernels, which handle M <= 16 tokens
-  per step (`p8_native_kernel.py`: `small_m = m <= 16` on the full-coupled path).
+- **FP8 KV only.** RP2 was measured only with FP8 KV. Production uses NVFP4 KV, and RP2 was never run
+  with NVFP4 KV.
+- **Served effect.** The served effect is expected to be smaller than the measured one:
+  - the true-decode protocol computes every position, including its KV entries, with M1 decode
+    steps;
+  - in serving, the prompt is prefilled by the unchanged kernels, so the prompt's hidden states and
+    KV entries carry control numerics, and only generated tokens use RP2.
+
+  The served-model effect was not measured.
+- **Direct kernels only.** RP and RP2 change only the direct kernels, which handle steps with
+  M <= 16 tokens (`p8_native_kernel.py`: `small_m = m <= 16` on the full-coupled path).
   - With MTP3, one sequence verifies 4 tokens per step and four sequences verify 16, so both stay
     on the direct path.
-  - Five or more concurrent sequences with MTP3 (20+ tokens per step), and all prompt prefill,
-    use the grouped and prefill kernels, which are unchanged.
-- **Development data, not qualification.** The 32 windows of the first two production windows
-  had been opened before, and the final run adds 96 unopened conditional-fit windows. None of
-  this is a measurement on the held-back selection, confirmation or final windows, or an
-  independent reproduction.
-- **One server per arm.** Each arm got one server preparation, in a fixed order, so the window
-  intervals do not include server-run variability.
-  - The measured drift is about 1% or less: the control -0.07%, TR3 -1.07%, and the NVFP4-KV
-    control -1.25% against 09-09.
-  - Cross-run comparisons carry that noise.
+  - Five or more concurrent sequences with MTP3 (20+ tokens per step), and steps with more than 16
+    tokens (most prompt prefills), use the grouped and prefill kernels. Those are unchanged.
+- **The activation marker means the path is armed.** `P8_DX2_ROWPACK_ACTIVE` is printed at
+  construction. The row-packed path then runs on steps with M <= 16.
+- **Configuration limits.** The remainder code supports only the configuration the measured runs
+  used:
+  - `fc1_broadcast_a=True` for RP2;
+  - `fc1_warp_quant=False` for every remainder mode;
+  - one route per direct tile.
+
+  Other settings could race or silently drop the remainder. Building with `DX2_GUARDS=1` adds
+  host-side checks that reject them. `results/rp2_guard_smoke.json` records that:
+  - the measured configuration passes, with smoke numbers identical to the 09-25 run;
+  - the four unsupported combinations tested are rejected.
+- **Server-level shifts.** Each arm got one server preparation.
+  - Repeats of identical configurations on different days moved by up to -2.4%, with CIs that
+    exclude 0. That is about the size of the primaries' margins from 0 (1.8% and 2.0%).
+  - The final arms ran in one night, in a fixed order, and the conclusions assume within-night
+    stability. The one same-night repeat (-0.07% [-0.9%, +1.2%]) supports that.
+  - Cross-run comparisons carry the larger cross-day noise.
+- **Captures are not bit-reproducible run to run.** Two control-fp8 runs had 0/32 identical
+  windows. That row-level noise is part of the per-window variation the paired intervals already
+  include.
+- **Window dependence and domain mix.**
+  - Windows are not fully independent: the reasoning windows share a template, and a few
+    general-text windows overlap. The cluster bootstrap leaves both primaries intact.
+  - The RP2-TR3 gap depends on the text mix. With equal domain weights its interval includes 0.
+- **Development data, not qualification.**
+  - The 32 windows of the first two production windows had been opened before, and the final run
+    adds 96 unopened conditional-fit windows.
+  - None of this is a measurement on the held-back selection, confirmation or final windows.
+  - None of it is an independent reproduction.
 - **TR3 is a different system.** The TR3 arm runs its own runtime (r10 image, TP4 with expert
   parallelism, DCP4) with different handling of the non-routed weights. The RP2-TR3 difference is
   a system comparison, not an isolated quantizer comparison.
-- **Heavy-tailed KL.** A few rows carry much of the mean: the top 1% of rows held 31% of it in
-  the first production window. That is why the primaries use window means with BCa intervals.
+- **Heavy-tailed KL.** A few rows carry much of the mean: the top 1% of rows held 31% of it in the
+  first production window. That is why the primaries use window means with BCa intervals.
 - **Per-domain results are exploratory.** They were not preregistered, they have no multiplicity
   correction, and the domains are small (16-38 windows).
 - **Layer-level proxies are not KL.**
   - Tests B and B2 measure single-layer routed-output damage, not model output.
-  - Test C used stand-in latents, because attention inputs were not captured and the residual
-    has four hyper-connection streams.
+  - The closure gates show damage agreement, not tensor equivalence.
+  - Test C used stand-in latents, because attention inputs were not captured and the residual has
+    four hyper-connection streams.
 - **Timing scope.**
-  - The timings are isolated MoE-layer microbenchmarks on one GPU, with the rank-0 sidecars of
-    two layers (3 and 8).
+  - The timings are isolated MoE-layer microbenchmarks on one GPU, with the rank-0 sidecars of two
+    layers (3 and 8).
   - The zero-remainder arm is a lower bound on a real remainder's cost.
   - Test A ran on a clock-pinned GPU (see 4.1).
-- **Speed is descriptive.** One run per cell. The MTP-acceptance differences between runs are not
-  explained.
+- **Speed is descriptive.** One run per cell. The runs cannot resolve an end-to-end cost of 1-3%,
+  and the MTP-acceptance differences between runs are not explained.
 
-## 6. Reproduction
+## 6. Independent audit (2026-09-26)
 
-### 6.1 Images
+After the first publication (commit 05b5d28), the repository and the testing workspace were
+audited by six independent reviews.
+- **Who.** The reviews were run as separate automated review agents: three on the local TrellisMX
+  model and three on two hosted models.
+- **How.** Each built its own reading of this repository and the workspace, under read-only rules.
+  In a second round each cross-checked the others' findings against the evidence.
+
+**Verdict.** All six concluded "supported with changes", and none found a blocker to the numbers:
+- all 384 score records and hashes reproduce;
+- both preregistered primaries reproduce exactly, including their BCa endpoints in manifest order;
+- the layer-level, closure and timing tables regenerate.
+
+**What changed after the audit:**
+- **Wording.**
+  - Equivalence with TR3 "was not established", rather than "not equivalent".
+  - Test C is limited to the tested stand-in latents.
+  - "Nearly free" is replaced by the measured kernel cost (at most 2.7% at M1).
+  - The closure gates are described as damage agreement.
+  - Prefill coverage is stated by tokens per step.
+  - The speed claim now says the runs cannot resolve a 1-3% end-to-end cost.
+- **Drift.** "About 1% or less" is replaced by the run-to-run repeat table (section 3.12), and the
+  within-night stability assumption is stated.
+- **New sensitivity analyses** (section 4.9):
+  - domain-balanced;
+  - cluster bootstrap for windows that share text;
+  - Bonferroni;
+  - ratio-of-means;
+  - an interval for the gap closure;
+  - per-window spread;
+  - rerun row agreement;
+  - top-1 agreement with the teacher.
+
+  They come from `scripts/reported_extras_cf128.py`.
+- **Provenance.**
+  - A chronology of amendment commits against first data (section 3.1).
+  - The interim-look time corrected to 23:47.
+  - Per-arm capture images from each arm's `launch.json`, with the misleading `capture_image_id`
+    field flagged.
+  - The start-state `execution.json` records of the first two windows.
+- **Kernel safety.** Opt-in host guards (`DX2_GUARDS=1`, `patches/b12x-dx2-guards.diff`) and a
+  guard smoke test. The default build still reproduces the measured trees byte for byte.
+- **Records added:**
+  - the 09-25 smoke output;
+  - the KV-mirror check rerun;
+  - the serving-profile KV capacities;
+  - copies of the published 09-09 comparison files;
+  - a working repo-layout path in `scripts/final_cf128_report.py`.
+- **Number fixes.**
+  - One rounding fix in `RESULTS.md`: the new-96 control - tr3 lower bound is +6.6%, not +6.7%.
+  - The NVFP4 serving-capacity figure is attributed to the correct server.
+
+## 7. Reproduction
+
+### 7.1 Images
 
 | Role | Identity |
 |---|---|
 | Serving image (public) | `verdictai/trellismx:glm53-flash-p8-r27-reference-20260909@sha256:ca6b80188dce154b91f49108b7d87792d2ba6328935afc71b44d1c0e6f6a1adf` |
 | Its base image, per the published image record | `voipmonitor/vllm:jovian-judgement-community-20260906-r27@sha256:a298fe1cd207eaf97bd2ff2686716ed25b7009c09b36650eba732a4a7dc51512` |
-| TrellisMX capture image (local build, not published; the image of the published 09-09 measurement) | image id `sha256:0405a1c0dc128b51069798a5d00b346257bbd006c0deb7e6530a3d005d75de71` |
-| TR3 capture image (local build, not published; the image of the published 09-09 TR3 comparison) | `local/tr3-r10:cf32-process-cache-20260909`, image id `sha256:62e069faf47f2d42eae5f2c1677f8730a2f3f93d576301fe1bcc7e55f2fdb673` |
+| TrellisMX capture image: control and RP arms of all windows (local build, not published; the image of the published 09-09 measurement) | image id `sha256:0405a1c0dc128b51069798a5d00b346257bbd006c0deb7e6530a3d005d75de71` |
+| TR3 capture image: TR3 arm of the final run (local build, not published; the image of the published 09-09 TR3 comparison) | `local/tr3-r10:cf32-process-cache-20260909`, image id `sha256:62e069faf47f2d42eae5f2c1677f8730a2f3f93d576301fe1bcc7e55f2fdb673` |
 
-The published 09-09 `comparison.json` files record both capture images and their provenance.
+Each arm's docker argv is in `results/kld-cf128/<arm>/launch.json`, and the image digest for each
+arm is recorded there. The published 09-09 `comparison.json` files record both capture images and
+their provenance.
 
-### 6.2 Inputs
+### 7.2 Inputs
 
-- **TrellisMX r27 checkpoint** at the revision in [Sources](#7-sources). Its
-  `trellismx-manifest.json` is byte-identical to the one we ran, and the sidecar sha256 values
-  in `results/testB/layer-003.json` and `layer-008.json` match the Hub files.
+- **TrellisMX r27 checkpoint** at the revision in section 8. Its `trellismx-manifest.json` is
+  byte-identical to the one we ran, and the sidecar sha256 values in
+  `results/testB/layer-003.json` and `layer-008.json` match the Hub files.
 - **NVFP4 carrier** at the pinned revision.
 - **TR3 4bpw** at `aba59d2175e1ee2887ae0ae1300ba848b1deed84`.
 - **BF16 base model** at `a6c167b62691b2bac901344b65cb651a70f53e43`. Tests B and B2 need only the
   routed-expert shards of the tested layers.
-- **Teacher dataset.**
-  - Revision `95f4fdd94bf29989db2e0d1054e4931f55edb6aa` holds the routed-block captures.
+- **Teacher dataset**, at two revisions:
+  - `95f4fdd94bf29989db2e0d1054e4931f55edb6aa` holds the routed-block captures.
     `scripts/fetch_fit_capture.py` fetches only the fit windows, by byte range, and checks them
     against the capture manifest.
-  - Revision `7c378d5f17dba158c4c803eff27c346dd0615660` holds the conditional-fit teacher logits
-    and token arrays.
+  - `7c378d5f17dba158c4c803eff27c346dd0615660` holds the conditional-fit teacher logits and token
+    arrays.
 - **Window lists.** `results/kld-rp-20260925/verified-inputs.json` (32 windows) and
-  `results/kld-cf128/verified-inputs.json` (all 128) record, for every window:
+  `results/kld-cf128/verified-inputs.json` (all 128, in manifest order) record, for every window:
   - the token-array and token-value sha256;
   - the teacher-logit file and its sha256;
   - the role manifest and metric hashes.
@@ -855,11 +1033,13 @@ The published 09-09 `comparison.json` files record both capture images and their
 Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-volume>`,
 `<model-volume>`); see `scripts/README.md`.
 
-### 6.3 Commands
+### 7.3 Commands
 
-1. **Kernel trees.** Apply `patches/*.diff` to the image's b12x, or run the builders
-   `scripts/build_zero_remainder_b12x.py`, `scripts/build_dx2_b12x.py`, and
-   `DX2_DST=<scratch dir> scripts/build_dx2_rp2_b12x.py`.
+1. **Kernel trees.** Apply `patches/*.diff` to the image's b12x, or run the builders:
+   - `scripts/build_zero_remainder_b12x.py`
+   - `scripts/build_dx2_b12x.py`
+   - `DX2_DST=<scratch dir> scripts/build_dx2_rp2_b12x.py`. Add `DX2_GUARDS=1` for the opt-in host
+     guards; without it the output is byte-identical to the measured tree.
 2. **Test A.** `scripts/run_timing.sh`, then `python3 scripts/analyze_timing.py`.
 3. **Tests B and C.**
    - `scripts/fetch_fit_capture.py <layers>`
@@ -878,39 +1058,50 @@ Local paths in the scripts are placeholders (`<workspace>`, `<home>`, `<data-vol
    - `B12X_TREE=b12x-dx2rp2 A2_ARM=rp2 A2_MS=1,4,16 A2_OUT=/work/results/a4_timing_raw.json scripts/run_a2.sh` (A4)
    - then `python3 scripts/analyze_B2_A2.py` and `python3 scripts/summarize_rowpack_timing.py`.
 6. **B2.** `scripts/run_testB2.py`, then `python3 scripts/analyze_B2_A2.py`.
-7. **End-to-end windows.**
-   - The window scripts are `scripts/window_nvfp4_20260925.py`,
-     `scripts/window_fp8_20260925.py` and `scripts/window_cf128_20260925.py`.
-   - The 128-window inputs come from `scripts/build_inputs_128.py`, and the final report from
-     `scripts/final_cf128_report.py`.
+7. **RP2 smoke and guards.** `scripts/run_rp2_smoke.sh` and `scripts/run_rp2_guard_smoke.sh`. The
+   guard run needs a tree built with `DX2_GUARDS=1`.
+8. **End-to-end windows.**
+   - The window scripts are `scripts/window_nvfp4_20260925.py`, `scripts/window_fp8_20260925.py`
+     and `scripts/window_cf128_20260925.py`.
+   - The 128-window inputs come from `scripts/build_inputs_128.py`.
    - They need the 09-09 reference launch arguments, the capture images above and, for the final
      run, the TR3 attempt-2 launch.
    - They also operate our production host (systemd user unit, locks, ports). Treat them as a
      record of the procedure and adapt them before use.
 
-### 6.4 Re-deriving the reported numbers (no GPU)
+### 7.4 Re-deriving the reported numbers (no GPU)
 
-- **Timing and layer-level analyses.** `analyze_timing.py`, `analyze_timing_split.py`,
-  `analyze_BC.py` and `analyze_B2_A2.py` regenerate `timing_analysis.json`,
-  `timing_split_analysis.json`, `analysis_BC.json` and `analysis_amendment2.json` exactly from
-  the raw files in `results/`.
-- **A3 and A4.** `summarize_rowpack_timing.py` reproduces the A3 and A4 medians and intervals.
-- **KL divergence.** Every production window includes three kinds of score file:
+- **Timing and layer-level analyses.**
+  - `analyze_timing.py`, `analyze_timing_split.py`, `analyze_BC.py` and `analyze_B2_A2.py`
+    regenerate `timing_analysis.json`, `timing_split_analysis.json`, `analysis_BC.json` and
+    `analysis_amendment2.json` exactly from the raw files in `results/`.
+  - `summarize_rowpack_timing.py` reproduces the A3 and A4 medians and intervals.
+- **Final report.** `python3 scripts/final_cf128_report.py` runs from this layout. It reproduces
+  every field of `results/kld-cf128/final-report.json` except the KV capacities.
+  - It reads those from engine startup logs that are not included. The values are in the runtime
+    audits and in `results/kv_capacity_serving_profile.json`.
+  - It also rewrites that file, so run it on a copy.
+- **Extras.** `python3 scripts/reported_extras_cf128.py` runs from this layout. It reproduces every
+  field of `results/kld-cf128/reported-extras.json` except `window_dependence`, which needs the
+  local token arrays.
+  - It also rewrites that file, so run it on a copy.
+  - The published file is the workspace run, which includes `window_dependence`.
+- **KL divergence.** Every production window includes three kinds of score record:
   - `scores/*.json`, the per-window records. Each window's `true_decode_mean_kld` is the mean of
     `kld[1:]` in the matching `.npz`.
-  - `scores/*.npz`, the per-row scores: row KL, teacher entropy, top-1 tokens and
-    probabilities, and realized-token log-probabilities.
-  - `scores/*.retirement.json`, hash records that tie each score file to its retired raw logits.
+  - `scores/*.npz`, the per-row scores: row KL, teacher entropy, top-1 tokens and probabilities,
+    and realized-token log-probabilities.
+  - `scores/*.retirement.json`, hash records tying each score file to its retired raw logits.
 - **Intervals.** The intervals in each `analysis.json` are `scipy.stats.bootstrap` BCa over the
-  window-paired values. The cross-run comparisons use the same estimator against the published
-  09-09 `comparison.json` files.
+  window-paired values. The cross-run comparisons use the same estimator against the 09-09
+  `comparison.json` files, which are included in `results/reference-20260909/`.
 
 **Not included:** `.pt` tensors; raw logits, which were retired after hashing and scoring;
 request/response captures; server and startup logs; telemetry; clock CSVs.
 
-## 7. Sources
+## 8. Sources
 
-### 7.1 Models, data, code and images used
+### 8.1 Models, data, code and images used
 
 1. **Base model.** `zai-org/GLM-5.3-Flash-BF16`, revision
    `a6c167b62691b2bac901344b65cb651a70f53e43` (https://huggingface.co/zai-org/GLM-5.3-Flash-BF16).
@@ -923,9 +1114,12 @@ request/response captures; server and startup logs; telemetry; clock CSVs.
    weights used in Test C.
 3. **TrellisMX r27 checkpoint.** `brandonmusic/GLM-5.3-Flash-TrellisMX-MXFP8`, revision
    `b492969185c600f2dc431fe12acbbdf2632e905b`
-   (https://huggingface.co/brandonmusic/GLM-5.3-Flash-TrellisMX-MXFP8). It is the checkpoint under
-   test, and that revision holds the published 09-09 KL results we compare against
-   (`results/kld-reference-20260909/`, `results/kld-tr3-20260909/`).
+   (https://huggingface.co/brandonmusic/GLM-5.3-Flash-TrellisMX-MXFP8).
+   - It is the checkpoint under test.
+   - That revision holds the published 09-09 KL results we compare against, under
+     `results/kld-reference-20260909/` and `results/kld-tr3-20260909/`.
+   - Byte-identical copies of those files (`comparison.json`, `audit.json`, `README.md`) are in
+     this repository under `results/reference-20260909/`.
 4. **TR3 4bpw.** `brandonmusic/GLM-5.3-Flash-tr3-4bpw`, revision
    `aba59d2175e1ee2887ae0ae1300ba848b1deed84`
    (https://huggingface.co/brandonmusic/GLM-5.3-Flash-tr3-4bpw). It is the comparator of the
@@ -941,12 +1135,13 @@ request/response captures; server and startup logs; telemetry; clock CSVs.
      - `p8_layer_rate_damage`, `p8_coupled_scale`, `capture`, `shard_index`;
      - `canary_mxfp6_reap` (`_qdq_e4m3_k32`, `_metrics`);
      - `screen_p8_h128_activation` (`_ordinary`);
-     - `p8_decode_protocol`, the KL capture and scoring protocol, which was imported from a
-       local checkout of the same repository and is byte-identical to the file at this commit.
-   - Its `results/P8_COUPLED_INCOHERENCE_ARCHIVE_AUDIT.md` holds the published 09-04 screen
-     value that Test B reproduces.
-7. **Serving image.** `verdictai/trellismx:glm53-flash-p8-r27-reference-20260909` (digest above).
-   Every kernel test and production arm ran in it.
+     - `p8_decode_protocol`, the KL capture and scoring protocol. It was imported from a local
+       checkout of the same repository and is byte-identical to the file at this commit.
+   - Its `results/P8_COUPLED_INCOHERENCE_ARCHIVE_AUDIT.md` holds the published 09-04 screen value
+     that Test B reproduces.
+7. **Serving image.** `verdictai/trellismx:glm53-flash-p8-r27-reference-20260909` (digest in
+   section 7.1). Every kernel test and every TrellisMX production arm ran in it or in its capture
+   derivative. The TR3 arm used its own capture image (section 7.1).
 8. **b12x.** Luke Alonso and contributors, https://github.com/local-inference-lab/b12x (the
    earlier https://github.com/lukealonso/b12x redirects there). Apache License 2.0.
    - The P8 kernels and the patched files come from it.
@@ -959,74 +1154,84 @@ request/response captures; server and startup logs; telemetry; clock CSVs.
    `7239958032ec10781d7db3efca23a7602bd9aeb94455a723e2634ab7d6fe546a`. It produced every speed
    number.
 
-### 7.2 Background
+### 8.2 Background
 
 - **QTIP.** Tseng, A., Sun, Q., Hou, D., and De Sa, C. "QTIP: Quantization with Trellises and
   Incoherence Processing." NeurIPS 2024. arXiv:2406.11235. Cited as the origin of the trellis
   codes with computed codebooks that the P8 weight format uses; the b12x intrinsics label the
   trellis path "QTIP/EXL3".
-- **ExLlamaV3 / EXL3.** turboderp. https://github.com/turboderp-org/exllamav3. Cited because the
-  P8 decode's procedural MCG constants and state construction are ported from ExLlamaV3's MCG
-  decoder, as the b12x source headers state.
-- **Microscaling.** Open Compute Project, "OCP Microscaling Formats (MX) Specification v1.0,"
-  2023; Rouhani, B. D., et al. "Microscaling Data Formats for Deep Learning." arXiv:2310.10537,
-  2023. Cited because they define the E4M3 elements with UE8M0 scales per 32-element block that
-  the P8 activations and the remainder use.
+- **ExLlamaV3 / EXL3.** turboderp. https://github.com/turboderp-org/exllamav3. Cited because the P8
+  decode's procedural MCG constants and state construction are ported from ExLlamaV3's MCG decoder,
+  as the b12x source headers state.
+- **Microscaling.** Open Compute Project, "OCP Microscaling Formats (MX) Specification v1.0," 2023;
+  Rouhani, B. D., et al. "Microscaling Data Formats for Deep Learning." arXiv:2310.10537, 2023.
+  Cited because they define the E4M3 elements with UE8M0 scales per 32-element block that the P8
+  activations and the remainder use.
 - **NVIDIA PTX ISA.** https://docs.nvidia.com/cuda/parallel-thread-execution/. Cited for the
   block-scaled `mma.sync` (`kind::mxf8f6f4`) that the kernels issue, and for the NVFP4 format
   (E2M1 values with E4M3 scales) of the KV record.
-- **QuaRot.** Ashkboos, S., Mohtashami, A., Croci, M., Li, B., Jaggi, M., Alistarh, D.,
-  Hoefler, T., and Hensman, J. "QuaRot: Outlier-Free 4-Bit Inference in Rotated LLMs." NeurIPS
-  2024. arXiv:2404.00456. Cited as the rotation-before-quantization idea that Test C tested on the
-  KV record.
+- **QuaRot.** Ashkboos, S., Mohtashami, A., Croci, M., Li, B., Jaggi, M., Alistarh, D., Hoefler,
+  T., and Hensman, J. "QuaRot: Outlier-Free 4-Bit Inference in Rotated LLMs." NeurIPS 2024.
+  arXiv:2404.00456. Cited as the rotation-before-quantization idea that Test C tested on the KV
+  record.
 - **KL divergence.** Kullback, S., and Leibler, R. A. "On Information and Sufficiency." Annals of
   Mathematical Statistics 22(1), 1951. Cited because it defines the primary metric.
 - **BCa intervals.** Efron, B. "Better Bootstrap Confidence Intervals." Journal of the American
   Statistical Association 82(397), 1987. Cited because every KL interval is a BCa interval.
 - **SciPy.** `scipy.stats.bootstrap` (`method="BCa"`). Cited because it computes the KL intervals.
 - **Preregistration.** Nosek, B. A., Ebersole, C. R., DeHaven, A. C., and Mellor, D. T. "The
-  preregistration revolution." PNAS 115(11), 2018. Cited for the practice this study follows:
-  a plan and decision rules fixed before the data, with amendments stated openly.
+  preregistration revolution." PNAS 115(11), 2018. Cited for the practice this study follows: a
+  plan and decision rules fixed before the data, with amendments stated openly.
 
-## 8. License
+## 9. License
 
-This repository's own scripts, documentation and result files are distributed under the
-ShapleyMCG License 1.0 (`LICENSE`), the same license as the campaign repository. It is
-source-available, not OSI open source. Required attribution:
+This repository's own scripts, documentation and result files are distributed under the ShapleyMCG
+License 1.0 (`LICENSE`), the same license as the campaign repository. It is source-available, not
+OSI open source. Required attribution:
 
 > ShapleyMCG was created by Brandon M. Music. Canonical source:
 > https://github.com/brandonmmusic-max/shapleymcg
 
 The b12x kernel patches in `patches/` modify Apache-2.0 b12x sources and are provided under the
-Apache License 2.0 (`patches/LICENSE.b12x`). Third-party models, datasets, images and libraries
+Apache License 2.0 (`patches/LICENSE.b12x`). The files in `results/reference-20260909/` are copies
+of files published with the TrellisMX model. Third-party models, datasets, images and libraries
 keep their own licenses.
 
-## 9. Repository layout
+## 10. Repository layout
 
 ```
 README.md                 this document
-PREREG.md                 preregistration and Amendments 1-7
-RESULTS.md                results log, written as results came in
+PREREG.md                 preregistration, Amendments 1-7 and the commit chronology
+RESULTS.md                results log, written as results came in, with the audit corrections
 LICENSE                   ShapleyMCG License 1.0
 scripts/                  every script that produced a number (see scripts/README.md)
-patches/                  b12x kernel diffs and their Apache-2.0 license (see patches/README.md)
+patches/                  b12x kernel diffs, the opt-in guards diff, and their Apache-2.0 license
 results/
   timing_raw.json, timing_analysis.json                Test A
   timing_split_raw.json, timing_split_analysis.json    Test A exploratory split
   gpucheck_*.json                                      per-GPU M1 timing and clock checks
   testB/, testB2/                                      layer-level records, 09-04 screen reproduction
-  testC/                                               Test C per-configuration records
+  testC/                                               Test C records and the KV-mirror check
   analysis_BC.json, analysis_amendment2.json           Tests B, C, B2 and A2 analysis
   k2/closure-*.json                                    K2, K3 and K4 closure
   a2_timing_raw.json, a3_timing_raw.json               A2 and A3 timing
   a4_timing_raw.json, a4_timing_summary.json           A4 timing
   dx2_split_timing_raw.json                            A2 exploratory split
+  rp2_smoke_20260925_console.jsonl                     RP2 smoke output, 09-25
+  rp2_guard_smoke.json, rp2_guard_smoke.log            RP2 smoke rerun and guard test, 09-26
+  kv_capacity_serving_profile.json                     serving-profile KV capacities
+  reference-20260909/                                  copies of the published 09-09 KL comparison files
   kld-rp-20260925/                                     first production window (NVFP4 KV, 32 windows)
   kld-fp8-20260925/                                    second production window (FP8 KV, 32 windows)
   kld-cf128/                                           final run (FP8 KV, 128 windows):
     analysis.json, final-report.json                     preregistered analysis and final report
+    reported-extras.json                                 reported-only and audit sensitivity analyses
     verified-inputs.json                                 window list with input and teacher hashes
-    control-fp8/, rp2-fp8/, tr3-fp8/                     runtime audits and per-window scores
+    control-fp8/, rp2-fp8/, tr3-fp8/                     launch argv, runtime audits, per-window scores
     speed/rp2-fp8/                                       benchmark outputs and launch arguments
     window.log, execution*.json, restoration.json        window log, execution and restoration records
 ```
+
+`RESULTS.md` and `PREREG.md` name files by their paths in the testing workspace:
+- `kld-*/...` there is `results/kld-*/...` here;
+- `results/b12x-dx2-guards.diff` is `patches/b12x-dx2-guards.diff`.

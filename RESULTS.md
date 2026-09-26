@@ -334,20 +334,24 @@ All 128 conditional-fit windows were scored in every arm (2,046 scored rows per 
 **Reading (preregistered rules).**
 - **Primary 1: RP2 improves on the control.** KLD falls by 4.9%, the CI excludes 0, and RP2 is lower in
   105 of 128 windows.
-- **Primary 2: RP2 is NOT tied with TR3.** RP2 is 8.3% above TR3 and the CI [+2.0%, +14.5%] excludes 0. It is not
-  equivalent at +/-5% or at +/-10%.
-- RP2 closes 40% of the control's gap to TR3 (0.004183 -> 0.002504).
-- The interim look at 00:11 (47 windows: +5.4%, CI [-5.3%, +14.2%]) could not tell RP2 and TR3 apart. The full set
+- **Primary 2: RP2 is NOT tied with TR3.** RP2 is 8.3% above TR3 and the CI [+2.0%, +14.5%] excludes 0. Equivalence
+  within +/-5% or +/-10% was not established. That is a separate statement from the direction: it does not show the
+  difference exceeds 10%. (Wording corrected after the 09-26 audit.)
+- RP2 closes 40.1% of the control's gap to TR3 (0.004183 -> 0.002504), paired bootstrap 95% [18.6%, 75.0%].
+- The one interim look, at 23:47 EDT (control and rp2 complete, TR3 at 47 windows: +5.4%, CI [-5.3%, +14.2%]),
+  could not tell RP2 and TR3 apart. It changed nothing in the run, which completed automatically. (Time corrected
+  after the audit; it had been recorded as 00:11.) The full set
   can: on the 96 windows scored for the first time, RP2 - TR3 is +9.8% [+2.1%, +16.9%] (reported only).
 
 **Reported only.**
-- The 96 new windows alone: rp2 - control -4.1% [-6.6%, -0.7%] (lower in 76/96); control - tr3 +14.5% [+6.7%, +21.9%].
+- The 96 new windows alone: rp2 - control -4.1% [-6.6%, -0.7%] (lower in 76/96); control - tr3 +14.5% [+6.6%, +21.9%].
 - The original 32 windows: rp2 - control -7.5% [-12.8%, +2.1%] (29/32 lower); rp2 - tr3 +3.4% [-9.6%, +13.7%].
 - Run-to-run stability on the original 32 windows:
   - control-fp8 here vs window 2: 0.031174 vs 0.031196 (-0.07%);
   - tr3-fp8 here vs 09-09: 0.027889 vs 0.028190 (-1.07%).
 
-  Run-level drift is about 1% or less, well below the 8.3% RP2-TR3 gap.
+  Corrected after the audit: this is the same-night repeat only. Repeats of identical configurations on other days
+  shifted more: see "Audit corrections and sensitivity analyses" below (up to -2.4%, with CIs excluding 0).
 - Row-level ratios (all 128 x 2,046 rows):
 
   | comparison | mean | median | q90 | q99 | q99.9 | pooled-q99.5 trimmed | rows lower | window medians lower |
@@ -406,8 +410,126 @@ All 128 conditional-fit windows were scored in every arm (2,046 scored rows per 
 
 - These are single unpaired runs from three different windows, with no intervals. MTP acceptance varies between runs
   and moves C1 speed by several percent.
-- The table shows no end-to-end slowdown from RP2. It cannot rank the arms.
-- KV capacity in this serving profile with FP8 KV is 8,127,659 tokens, against 12.58M with NVFP4 KV (window 2).
+- Observed sustained-decode rates were similar in these single unpaired runs. They cannot rank the arms or resolve
+  an end-to-end cost of 1-3%. (Wording corrected after the audit.)
+- KV capacity in this serving profile with FP8 KV is 8,127,659 tokens, against 12,581,699 tokens with NVFP4 KV (measured on the window-1 control speed server; see Amendment 5).
 
 **Close.** Production was restored via `systemctl --user start trellismx-klc.service`. It reported healthy at
 00:42:03, with `/health` 200 and `/v1/models` serving `glm53-flash-trellismx-p8-k45`. Downtime was 21:25:35 to 00:42:03.
+
+## Audit corrections and sensitivity analyses (2026-09-26, after publication of 05b5d28)
+
+Six independent auditors reviewed the published repository and this workspace: three on the local TrellisMX model and
+three on two hosted models. Each worked from its own reading, and in a second round they cross-checked each other.
+
+All six said "supported with changes", and none found a blocker to the numbers:
+- all 384 score records and hashes reproduce;
+- both preregistered primaries reproduce exactly, including their BCa endpoints in manifest order.
+
+The corrections they asked for are applied in place above and in the README. The numbers below come from
+`scripts/reported_extras_cf128.py` (CPU only; `kld-cf128/reported-extras.json`; python 3.12.3, numpy 1.26.3,
+scipy 1.16.3). Everything in this section is reported only.
+
+**Run-level repeats of identical configurations** (original 32 windows; paired BCa95; relative to the earlier run):
+
+| repeat | mean shift | BCa95 | per-window SD | max per-window |
+|---|---|---|---|---|
+| control-fp8, final vs FP8 window (same night, about 1 h apart) | -0.07% | [-0.9%, +1.2%] | 3.6% | 12.3% |
+| control-fp8, FP8 window vs 09-09 | -2.3% | [-7.4%, -0.2%] | 5.2% | 19.4% |
+| control-fp8, final vs 09-09 | -2.4% | [-7.7%, -0.3%] | 5.7% | 20.0% |
+| control NVFP4, first window vs 09-09 | -1.3% | [-2.4%, -0.1%] | 3.2% | 9.5% |
+| tr3-fp8, final vs 09-09 | -1.1% | [-5.3%, +0.3%] | 3.8% | 16.2% |
+
+- Per-window run noise is already inside the paired intervals, because each arm is one run. A shift of the whole
+  server run is not.
+- Same-night repeats agree closely. Repeats on different days moved by up to -2.4%, with CIs that exclude 0.
+- The primaries clear 0 by 1.8% (rp2 - control) and 2.0% (rp2 - tr3), about the size of those cross-day shifts.
+- The three arms ran in one night, one server each, in a fixed order. The conclusions therefore rest on the
+  assumption that within-night server shifts are small; the one same-night repeat supports it. Earlier text said
+  "about 1% or less"; that held only for the same-night repeat.
+
+**Domain mix.** The 128 windows are 38 general, 37 legal, 37 code/agentic and 16 reasoning. With the four domains
+weighted equally (a stratified bootstrap, percentile 95%):
+
+| difference | domain-balanced | 95% | overall (preregistered) |
+|---|---|---|---|
+| rp2 - control | -4.7% | [-7.3%, -2.0%] | -4.9% [-7.3%, -1.8%] |
+| rp2 - tr3 | +6.1% | [-0.2%, +12.5%] | +8.3% [+2.0%, +14.5%] |
+| control - tr3 | +11.4% | [+4.9%, +17.7%] | +13.9% [+7.0%, +20.4%] |
+
+RP2's advantage over the control holds under either weighting. Its gap to TR3 depends on the mix: TR3 leads on legal
+and general text, and with equal domain weights the interval includes 0.
+
+**Window dependence.** Windows are not independent draws:
+- 256 window pairs share at least one 32-token span;
+- all 120 pairs of reasoning windows share 100+ spans (a common template);
+- two general-text clusters are {0067, 0070, 0097} and {0006, 0026}.
+
+Re-estimating with a percentile bootstrap over clusters of windows that share spans:
+
+| clustering | clusters (largest) | rp2 - control | rp2 - tr3 |
+|---|---|---|---|
+| share >= 1 span | 81 (19) | [-7.4%, -1.9%] | [+2.0%, +16.2%] |
+| share >= 64 spans | 110 (16) | [-7.7%, -2.1%] | [+1.7%, +15.8%] |
+
+Both primaries hold. One auditor's clustering, with the 16 reasoning windows plus {0067, 0097} as clusters, gave
+[+0.9%, +15.0%] for rp2 - tr3.
+
+**Other robustness checks, as reported by the auditors:**
+- Bonferroni-adjusted 97.5% BCa intervals still exclude 0: [-7.59%, -1.22%] and [+1.08%, +15.31%].
+- Ratio-of-means BCa intervals are [-7.20%, -1.80%] and [+1.87%, +14.57%].
+- The results are stable across seeds.
+- Wilcoxon p = 4e-11 and 3e-4.
+- The published relative intervals are the absolute BCa interval divided by the comparator's observed mean.
+- Fixed-seed BCa endpoints depend on the window order. The manifest order (`verified-inputs.json`) reproduces them
+  exactly on scipy 1.16.3 and 1.17.1; sorting the IDs shifts them slightly.
+
+**Other quantities:**
+- Gap closed by RP2: 40.1%, paired bootstrap 95% [18.6%, 75.0%].
+- Per-window rp2/control ratio: 0.56 to 2.89 (median 0.93; log-ratio SD 0.18). A single window says little.
+- Row-level rerun check, the two control-fp8 runs on the original 32 windows: 0/32 windows bit-identical, 74.9% of
+  rows differ, and 97.7% top-1 agreement between runs. Captures are not bit-reproducible run to run.
+- Top-1 agreement with the BF16 teacher, over all 128 x 2,046 rows: control 94.34%, rp2 94.47%, tr3 94.75%.
+- Interim look (23:47): rp2 - control on the first 47 windows was -5.9% [-9.9%, +0.4%]; rp2 - tr3 +5.4% [-5.3%, +14.2%].
+
+**Chronology.** PREREG amendments were committed in the workspace git history before the data they govern:
+
+| amendment | commit | time |
+|---|---|---|
+| A4 | caa6c2b | 09-25 18:47:54 |
+| A5 | 3ec4dab | 20:26:35 |
+| A6 | 7622e63 | 20:36:09 |
+| A7 | 724782a | 21:23:44 |
+
+The windows started at 19:00:43, 20:29:49 and 21:25:35; K4/A4 ran from 21:19. The public repository was created after
+the first two windows and does not show this order. Git times are self-asserted. The approximate header times in
+PREREG.md for A5-A7 (~20:10, ~20:40, ~22:00) are corrected by the table there; the amendment texts are unchanged.
+
+**Other corrections:**
+- **Closure gates (K2-K4)** show damage agreement with the reference, not tensor equivalence. "Matches the plane-based
+  D-x2 to FP32 rounding" means the damage ratios agree to 4-5 digits.
+  - Flag-off bit identity with the image kernels was confirmed by `torch.equal` on the saved tensors (M16, M3072;
+    layers 3 and 8; rank sums).
+  - K2's M1 path used 96 tokens, not the 64 in the preregistration.
+- **Coverage.** RP/RP2 dispatch is by M, the tokens per step: M <= 16 uses the direct kernels. "All prompt prefill"
+  should read "steps with more than 16 tokens", which covers most prompt prefills.
+- **Configuration limits.** RP2 needs `fc1_broadcast_a=True`, all remainder modes need `fc1_warp_quant=False`, and RP
+  needs one route per direct tile. The measured runs used those settings.
+  - `DX2_GUARDS=1` in the builder adds host checks that reject other settings (`results/b12x-dx2-guards.diff`).
+  - The default build still reproduces the measured trees byte for byte.
+  - `results/rp2_guard_smoke.json`: the measured configuration passes with smoke numbers identical to the 09-25
+    run, and the four unsupported combinations are rejected.
+- **`P8_DX2_ROWPACK_ACTIVE`** is printed at construction: the path is armed, and it runs on steps with M <= 16.
+- **Per-arm images** are recorded in each arm's launch argv: control and rp2 `sha256:0405a1c0...`, TR3
+  `sha256:62e069fa...`. The `capture_image_id` field in `runtime-audit.json` is a harness constant and is wrong for
+  the TR3 arm; its `image` field is right.
+- **The FP8-vs-NVFP4 KV comparison** (-10.9%) is cross-run on opened windows and was not a preregistered primary.
+- **Scope.** RP2 was measured only with FP8 KV. Production uses NVFP4 KV, and RP2 was never run with NVFP4 KV.
+- **Test C** shows no improvement on the tested stand-in latents. The Gaussian shape is a likely explanation, not a
+  demonstrated cause, and real-latent confirmation was not done.
+- **Kernel cost.** RP2 costs up to 2.7% of MoE-layer time at M1 (A4). End-to-end cost was not resolved.
+- **Records added:**
+  - `results/rp2_smoke_20260925_console.jsonl` (the 09-25 smoke output);
+  - `results/testC/mirror_check_20260926.txt` (99.963% of elements equal, error-energy ratio 0.999984);
+  - `results/kv_capacity_serving_profile.json`;
+  - the 09-09 comparison files in `results/reference-20260909/`.

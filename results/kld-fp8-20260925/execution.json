@@ -1,0 +1,9 @@
+{
+  "status": "starting",
+  "started": 1790382556.2403286,
+  "order": [
+    "control-fp8",
+    "rp-fp8",
+    "speed-rp-fp8"
+  ]
+}
