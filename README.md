@@ -1567,8 +1567,8 @@ telemetry and clock logs, except `results/speed-20260926/gpu3-350w/clocks.csv`.
 - **NVIDIA PTX ISA.** https://docs.nvidia.com/cuda/parallel-thread-execution/. Cited for the
   block-scaled `mma.sync` (`kind::mxf8f6f4`) that the kernels issue, and for the NVFP4 format
   (E2M1 values with E4M3 scales) of the KV record.
-- **QuaRot.** Ashkboos, S., Mohtashami, A., Croci, M., Li, B., Jaggi, M., Alistarh, D., Hoefler,
-  T., and Hensman, J. "QuaRot: Outlier-Free 4-Bit Inference in Rotated LLMs." NeurIPS 2024.
+- **QuaRot.** Ashkboos, S., Mohtashami, A., Croci, M. L., Li, B., Cameron, P., Jaggi, M.,
+  Alistarh, D., Hoefler, T., and Hensman, J. "QuaRot: Outlier-Free 4-Bit Inference in Rotated LLMs." NeurIPS 2024.
   arXiv:2404.00456. Cited as the rotation-before-quantization idea that Test C tested on the KV
   record.
 - **KL divergence.** Kullback, S., and Leibler, R. A. "On Information and Sufficiency." Annals of
